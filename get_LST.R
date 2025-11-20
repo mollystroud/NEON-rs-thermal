@@ -35,9 +35,10 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
     function(f) f$properties$platform %in% c("landsat-8", "landsat-9"),
     items$features
   )
-  
+
   # define the cube space
-  cube <- cube_view(srs ="EPSG:32617",
+  EPSG <- st_crs(bbox_utm)$epsg
+  cube <- cube_view(srs = paste0("EPSG:", EPSG),
                     extent = list(t0 = start_date, 
                                   t1 = end_date,
                                   left = bbox_utm[1], 
@@ -52,7 +53,8 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
   # create stac image collection
   col <- stac_image_collection(items$features,
                                asset_names = c("lwir11", "qa_pixel"),
-                               url_fun = function(url) paste0("/vsicurl/", url))  # helps GDAL access
+                               url_fun = identity)
+                               #url_fun = function(url) paste0("/vsicurl/", url))  # helps GDAL access
   # make raster cube
   data <- raster_cube(image_collection = col, 
                       view = cube)
@@ -109,43 +111,22 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # set date of interest
 start_date <- "2013-04-19T00:00:00Z" # start of LS8
-#start_date <- "2025-01-19T00:00:00Z"
-end_date <- "2025-11-13T00:00:00Z"
+start_date <- "2025-01-19T00:00:00Z"
+end_date <- "2025-03-13T00:00:00Z"
 # call functions
-data <- get_lst(fcr_box, fcr_box_utm, start_date, end_date)
+data <- get_lst(lakebarco_bbox, lakebarco_box_utm, start_date, end_date)
 thermal_masked <- water_mask(data)
+vals <- get_vals(lakebarco_points, thermal_masked)
+vals <- na.omit(vals)
+write_csv(vals, "thermal_LS_FCR.csv")
 
 # plot
 ggplot() +
   geom_stars(data = thermal_masked["thermal_C"]) +
   facet_wrap(~time) +
-  #annotate("point", x = 592750, y = 4137200, color = 'red') +
-  #annotate("point", x = 593050, y = 4139000, color = 'red') +
+  #annotate("point", x = 402440, y = 3283310, color = 'red') +
   theme_classic() +
   scale_fill_viridis()
-
-################################################################################
-# next, we will extract just points in middle of water body
-# hopefully this will avoid any mixed pixel issues due to the thermal band
-# resampling to 30 m
-################################################################################
-fcr_points <- data.frame(x = c(603010, 603050), y = c(4129520, 4129150))
-fcr_points <- st_as_sf(
-  fcr_points,
-  coords = c("x", "y"),   # change to your column names
-  crs = st_crs(thermal_masked)    # match raster CRS!
-)
-################################################################################
-# call value function and write out
-fcr_vals <- get_vals(fcr_points, thermal_masked)
-fcr_vals <- na.omit(fcr_vals)
-write_csv(fcr_vals, "thermal_LS_FCR.csv")
-# for targets file
-colnames(fcr_vals) <- c("datetime", "observation")
-fcr_vals$site_id <- "fcre"
-fcr_vals$depth <- 0
-fcr_vals$variable <- "temperature"
-write_csv(fcr_vals, "fcre-targets-rs.csv")
 
 
 
@@ -185,73 +166,9 @@ resids <- fcr_all$mean_thermal_C - fcr_all$mean_insitu_temp
 sd(resids)
 
 
-ccr_temp <- read_csv("thermal_LS_CCR.csv")
-ccr_insitu <- read_csv("ccre-waterquality_2021_2024.csv")
-ccr_insitu$DateTime <- as.Date(ccr_insitu$DateTime)
-ccr_insitu <- ccr_insitu |>
-  select(DateTime, ThermistorTemp_C_1) |>
-  group_by(DateTime) |>
-  summarise(mean_insitu_temp = mean(ThermistorTemp_C_1))
-ccr_all <- left_join(ccr_temp, ccr_insitu, by = c("time" = "DateTime"))
-ccr_all <- na.omit(ccr_all)
-
-ccr_tempcomp <- ggplot(ccr_all, aes(x = mean_thermal_C, y = mean_insitu_temp, color = time)) +
-  geom_point() +
-  scale_color_viridis(trans = 'date') +
-  theme_classic() +
-  geom_abline(intercept = 0, slope = 1) +
-  xlim(0, 35) + ylim(0, 35) +
-  labs(x = "Remotely sensed temperature (C)", y = "In situ temperature (C)",
-       color = element_blank(), title = "CCR")
-ccr_tempcomp
-
-diff <- ccr_all$mean_thermal_C - ccr_all$mean_insitu_temp
-sd(diff)
 
 
 
-library(patchwork)
-ccr_tempcomp + fcr_tempcomp
-
-
-
-#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# no matches for BVR
-bvr_temp <- read_csv("thermal_LS_BVR.csv")
-bvr_insitu <- read_csv("bvre-waterquality_2020_2024.csv")
-bvr_insitu$DateTime <- as.Date(bvr_insitu$DateTime)
-bvr_insitu <- bvr_insitu |>
-  select(DateTime, ThermistorTemp_C_1) |>
-  group_by(DateTime) |>
-  summarise(mean_insitu_temp = mean(ThermistorTemp_C_1, na.rm = T))
-bvr_all <- left_join(bvr_temp, bvr_insitu, by = c("time" = "DateTime"))
-bvr_all <- na.omit(bvr_all)
-
-ggplot(bvr_all, aes(x = mean_thermal_C, y = mean_insitu_temp, color = time)) +
-  geom_point() +
-  scale_color_viridis(trans = 'date') +
-  theme_classic() +
-  geom_abline(intercept = 0, slope = 1) +
-  xlim(-3, 35) + ylim(-3, 35) +
-  labs(x = "Remotely sensed temperature (C)", y = "In situ temperature (C)",
-       color = element_blank(), title = "FCR")
 
 
 
