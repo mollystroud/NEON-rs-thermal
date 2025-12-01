@@ -62,6 +62,48 @@ lakebarco_box_utm <- sf::st_bbox(
 
 
 # center most point(s) of water bodies, to avoid mixed pixel issues with thermal
+prairielake_points <- data.frame(x = c(491100, 490620), y = c(5222930, 5222770))
+prairielake_points <- st_as_sf(
+  prairielake_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(prairielake_box_utm)    # match raster CRS!
+)
+
+prairiepothole_points <- data.frame(x = c(480800), y = c(5219650))
+prairiepothole_points <- st_as_sf(
+  prairiepothole_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(prairiepothole_box_utm)    # match raster CRS!
+)
+
+cramptonlake_points <- data.frame(x = c(309080, 309380), y = c(5120340, 5120340))
+cramptonlake_points <- st_as_sf(
+  cramptonlake_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(cramptonlake_box_utm)    # match raster CRS!
+)
+
+sparklinglake_points <- data.frame(x = c(291000, 291000), y = c(5098200, 5098700))
+sparklinglake_points <- st_as_sf(
+  sparklinglake_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(sparklinglake_box_utm)    # match raster CRS!
+)
+
+littlerocklake_points <- data.frame(x = c(290870, 290570), y = c(5097100, 5097450))
+littlerocklake_points <- st_as_sf(
+  littlerocklake_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(littlerocklake_box_utm)    # match raster CRS!
+)
+
+lakesuggs_points <- data.frame(x = c(401500), y = c(3284600))
+lakesuggs_points <- st_as_sf(
+  lakesuggs_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(lakesuggs_box_utm)    # match raster CRS!
+)
+
 lakebarco_points <- data.frame(x = c(402440), y = c(3283310))
 lakebarco_points <- st_as_sf(
   lakebarco_points,

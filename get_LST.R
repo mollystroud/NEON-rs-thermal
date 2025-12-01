@@ -24,8 +24,8 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
     stac_search(collections = "landsat-c2-l2",
                 bbox = bbox,
                 datetime = paste(start_date, end_date, sep="/"),
-                limit = 500) |>
-    ext_query("eo:cloud_cover" < 60) |> #filter for cloud cover
+                limit = 1000) |>
+    ext_query("eo:cloud_cover" < 50) |> #filter for cloud cover
     post_request() |>
     items_sign(sign_fn = sign_planetary_computer()) |>
     items_fetch()
@@ -111,64 +111,23 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # set date of interest
 start_date <- "2013-04-19T00:00:00Z" # start of LS8
-start_date <- "2025-01-19T00:00:00Z"
-end_date <- "2025-03-13T00:00:00Z"
+start_date <- "2025-01-01T00:00:00Z"
+end_date <- paste0(Sys.Date(), "T00:00:00Z")
 # call functions
 data <- get_lst(lakebarco_bbox, lakebarco_box_utm, start_date, end_date)
+#plot(data)
 thermal_masked <- water_mask(data)
 vals <- get_vals(lakebarco_points, thermal_masked)
 vals <- na.omit(vals)
-write_csv(vals, "thermal_LS_FCR.csv")
+write_csv(vals, "thermal_LS_lakebarco_2024.csv")
 
 # plot
 ggplot() +
   geom_stars(data = thermal_masked["thermal_C"]) +
   facet_wrap(~time) +
-  #annotate("point", x = 402440, y = 3283310, color = 'red') +
+  annotate("point", x = 401500, y = 3284600, color = 'red') +
   theme_classic() +
   scale_fill_viridis()
-
-
-
-
-
-
-################################################################################
-# compare to in situ data, if needed
-################################################################################
-fcr_temp <- read_csv("thermal_LS_FCR.csv")
-fcr_insitu <- read_csv("fcre-waterquality_2018_2024.csv")
-fcr_insitu$DateTime <- as.Date(fcr_insitu$DateTime)
-fcr_insitu <- fcr_insitu |>
-  select(DateTime, ThermistorTemp_C_surface) |>
-  group_by(DateTime) |>
-  summarise(mean_insitu_temp = mean(ThermistorTemp_C_surface))
-fcr_all <- left_join(fcr_temp, fcr_insitu, by = c("time" = "DateTime"))
-fcr_all <- na.omit(fcr_all)
-
-fcr_tempcomp <- ggplot(fcr_all, aes(x = mean_thermal_C, y = mean_insitu_temp, color = time)) +
-  geom_point() +
-  scale_color_viridis(trans = 'date') +
-  theme_classic() +
-  geom_abline(intercept = 0, slope = 1) +
-  xlim(-3, 35) + ylim(-3, 35) +
-  labs(x = "Remotely sensed temperature (C)", y = "In situ temperature (C)",
-       color = element_blank(), title = "FCR")
-fcr_tempcomp
-
-# get stdev
-ggplot(fcr_all, aes(x = time, y = mean_thermal_C - mean_insitu_temp)) +
-  geom_point() +
-  theme_classic() +
-  geom_abline(slope = 0, intercept = 0)
-
-resids <- fcr_all$mean_thermal_C - fcr_all$mean_insitu_temp
-sd(resids)
-
-
-
-
-
 
 
 
