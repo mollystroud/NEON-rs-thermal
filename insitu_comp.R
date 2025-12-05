@@ -4,6 +4,7 @@
 # Compare LS thermal to in situ NEON temp data
 library(neonstore)
 library(neonUtilities)
+library(tidyverse)
 ################################################################################
 # Get NEON data
 ################################################################################
@@ -33,18 +34,18 @@ write_csv(data_cleaned, "NEON_insitu_columntemp.csv")
 ################################################################################
 insitutemps <- read_csv("NEON_insitu_columntemp.csv")
 # save out for one place, proper targets format
-barc <- insitutemps[insitutemps$site_id == "BARC",]
-barc$datetime <- paste0(barc$datetime, "T00:00:00Z")
+prla <- insitutemps[insitutemps$site_id == "PRLA",]
+prla$datetime <- paste0(prla$datetime, "T00:00:00Z")
 # now bin depths as per the configure file
-yml_config <- yaml::read_yaml("configuration/analysis/configure_flare.yml")
-test <- cut(barc$depth, breaks = yml_config$model_settings$modeled_depths,
+yml_config <- yaml::read_yaml("configuration/analysis/configure_flare_PRLA.yml")
+test <- cut(prla$depth, breaks = yml_config$model_settings$modeled_depths,
                        right = FALSE, dig.lab = 4)
 pattern <- "(\\(|\\[)(-*[0-9]+\\.*[0-9]*),(-*[0-9]+\\.*[0-9]*)(\\)|\\])"
 
-barc$depth <- as.numeric(gsub(pattern, "\\2", test))
-write_csv(barc, "targets/BARC/barc-targets-insitu.csv")
+prla$depth <- as.numeric(gsub(pattern, "\\2", test))
+write_csv(prla, "targets/PRLA/PRLA-targets-insitu.csv")
 
-
+# comp
 rs_temp <- read_csv("thermal_rs_prairiepothole.csv") # or your site of choice
 
 insitutemps$datetime <- as.Date(insitutemps$datetime) # convert to date

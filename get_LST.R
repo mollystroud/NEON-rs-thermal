@@ -121,16 +121,17 @@ vals <- get_vals(lakebarco_points, thermal_masked)
 vals <- na.omit(vals)
 write_csv(vals, "thermal_LS_lakebarco_2024.csv")
 
-test <- read_csv("rs-targets/thermal_rs_lakebarco.csv")
-test <- test[2:3]
+test <- read_csv("rs-targets/thermal_rs_littlerock.csv")
+#test <- test[2:3]
 
 test$time <- paste0(test$time, "T00:00:00Z")
-test$site_id <- "BARC"
+test$site_id <- "LIRO"
 test$depth <- 0
 test$variable <- 'temperature'
 colnames(test)[1] <- "datetime"
 colnames(test)[2] <- "observation"
-write_csv(test, "rs-targets/barc-targets-rs.csv")
+test$observation[test$observation < 0] <- 0
+write_csv(test, "rs-targets/LIRO-targets-rs.csv")
 
 # plot
 ggplot() +
