@@ -10,7 +10,7 @@ p_load('rstac', 'terra', 'stars', 'ggplot2', 'tidyterra', 'viridis',
 # area and estimate temperature over the reservoir
 ################################################################################
 # get bboxes
-source("NEON_bboxes.R")
+source("NEON_bboxes.R") # or, create your own bbox here
 
 # define stac url
 ls = stac ("https://planetarycomputer.microsoft.com/api/stac/v1")
@@ -111,27 +111,23 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # set date of interest
 start_date <- "2013-04-19T00:00:00Z" # start of LS8
-start_date <- "2025-01-01T00:00:00Z"
 end_date <- paste0(Sys.Date(), "T00:00:00Z")
+site <- "BARC"
 # call functions
-data <- get_lst(lakebarco_bbox, lakebarco_box_utm, start_date, end_date)
-#plot(data)
+data <- get_lst(paste0(site, "_bbox"), paste0(site, "_box_utm"), 
+                start_date, end_date)
 thermal_masked <- water_mask(data)
-vals <- get_vals(lakebarco_points, thermal_masked)
+vals <- get_vals(paste0(site, "_points"), thermal_masked)
 vals <- na.omit(vals)
-write_csv(vals, "thermal_LS_lakebarco_2024.csv")
-
-test <- read_csv("rs-targets/thermal_rs_littlerock.csv")
-#test <- test[2:3]
-
-test$time <- paste0(test$time, "T00:00:00Z")
-test$site_id <- "LIRO"
-test$depth <- 0
-test$variable <- 'temperature'
-colnames(test)[1] <- "datetime"
-colnames(test)[2] <- "observation"
-test$observation[test$observation < 0] <- 0
-write_csv(test, "rs-targets/LIRO-targets-rs.csv")
+#vals <- vals[2:3] # fix this
+vals$time <- paste0(vals$time, "T00:00:00Z")
+vals$site_id <- site
+vals$depth <- 0
+vals$variable <- 'temperature'
+colnames(vals)[1] <- "datetime"
+colnames(vals)[2] <- "observation"
+vals$observation[vals$observation < 0] <- 0 # remove likely incorrect #s
+write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
 
 # plot
 ggplot() +

@@ -34,16 +34,16 @@ write_csv(data_cleaned, "NEON_insitu_columntemp.csv")
 ################################################################################
 insitutemps <- read_csv("NEON_insitu_columntemp.csv")
 # save out for one place, proper targets format
-prla <- insitutemps[insitutemps$site_id == "PRLA",]
-prla$datetime <- paste0(prla$datetime, "T00:00:00Z")
+sugg <- insitutemps[insitutemps$site_id == "SUGG",]
+sugg$datetime <- paste0(sugg$datetime, "T00:00:00Z")
 # now bin depths as per the configure file
-yml_config <- yaml::read_yaml("configuration/analysis/configure_flare_PRLA.yml")
-test <- cut(prla$depth, breaks = yml_config$model_settings$modeled_depths,
+yml_config <- yaml::read_yaml("configuration/analysis/configure_flare_SUGG.yml")
+test <- cut(sugg$depth, breaks = yml_config$model_settings$modeled_depths,
                        right = FALSE, dig.lab = 4)
 pattern <- "(\\(|\\[)(-*[0-9]+\\.*[0-9]*),(-*[0-9]+\\.*[0-9]*)(\\)|\\])"
 
-prla$depth <- as.numeric(gsub(pattern, "\\2", test))
-write_csv(prla, "targets/PRLA/PRLA-targets-insitu.csv")
+sugg$depth <- as.numeric(gsub(pattern, "\\2", test))
+write_csv(sugg, "targets/SUGG/SUGG-targets-insitu.csv")
 
 # comp
 rs_temp <- read_csv("thermal_rs_prairiepothole.csv") # or your site of choice
