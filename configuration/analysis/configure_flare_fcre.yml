@@ -24,10 +24,10 @@ s3:
     endpoint: renc.osn.xsede.org
     bucket: bio230121-bucket01/flare/scores/parquet
 location:
-  site_id: sunp
-  name: Lake Sunapee
-  latitude: 43.3913
-  longitude: -72.0576
+  site_id: fcre
+  name: Falling Creek Reservoir
+  latitude: 37.307
+  longitude: -79.837
 da_setup:
   da_method: enkf
   par_fit_method: inflate
@@ -45,49 +45,36 @@ model_settings:
   ncore: 10
   max_model_layers: 75
   model_name: glm
-  base_GLM_nml: glm3_sunp.nml
+  base_GLM_nml: glm3_fcre.nml
   modeled_depths:
-  - 0.1
-  - 0.5
+  - 0.0
   - 1.0
   - 1.5
   - 2.0
   - 3.0
-  - 3.5
   - 4.0
-  - 4.5
   - 5.0
-  - 5.5
   - 6.0
-  - 6.5
   - 7.0
-  - 7.5
   - 8.0
-  - 8.5
   - 9.0
-  - 9.5
-  - 10.0
-  - 15.0
-  - 20.0
-  - 25.0
-  - 30.0
-  par_config_file: parameter_calibration_config_sunp.csv
-  obs_config_file: observations_config_sunp.csv
-  states_config_file: states_config_sunp.csv
+  par_config_file: parameter_calibration_config_fcre.csv
+  obs_config_file: observations_config_fcre.csv
+  states_config_file: states_config_fcre.csv
 default_init:
-  lake_depth: 33
+  lake_depth: 9.4
   temp:
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
+  - 25.667
+  - 24.9101
+  - 23.067
+  - 21.8815
+  - 19.6658
+  - 16.5739
+  - 12.9292
+  - 12.8456
+  - 12.8127
+  - 12.8079
+  - 12.778
   temp_depths:
   - 0.127
   - 1.004
@@ -105,8 +92,8 @@ default_init:
   white_ice_thickness: 0.0
   blue_ice_thickness: 0.0
 flows:
-  include_inflow: no
-  include_outflow: no
+  include_inflow: yes
+  include_outflow: yes
   future_inflow_model: future/model_id=historical_interp
   historical_inflow_model: historical/model_id=historical_interp
   local_inflow_directory: drivers/inflow

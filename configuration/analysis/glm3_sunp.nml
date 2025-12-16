@@ -6,14 +6,6 @@
    max_layer_thick = 0.8
    non_avg = .true.
 /
-&wq_setup
-   wq_lib = '.'
-   wq_nml_file = 'aed2.nml'
-   ode_method = 1
-   split_factor = 1
-   bioshade_feedback = .true.
-   repair_state = .true.
-/
 &light
    light_mode = 0
    n_bands = 4
@@ -79,7 +71,7 @@
    rad_mode = 1
    albedo_mode = 1
    cloud_mode = 4
-   meteo_fl = 'data/SunapeeMet_1979_2020EST.csv'
+   meteo_fl = 'sunp_met_final.csv'
    subdaily = .true.
    wind_factor = 1
    sw_factor = 1

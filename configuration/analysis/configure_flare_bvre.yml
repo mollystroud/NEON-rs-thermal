@@ -24,10 +24,10 @@ s3:
     endpoint: renc.osn.xsede.org
     bucket: bio230121-bucket01/flare/scores/parquet
 location:
-  site_id: sunp
-  name: Lake Sunapee
-  latitude: 43.3913
-  longitude: -72.0576
+  site_id: bvre
+  name: Beaverdam Reservoir
+  latitude: 37.307
+  longitude: -79.81607
 da_setup:
   da_method: enkf
   par_fit_method: inflate
@@ -45,13 +45,14 @@ model_settings:
   ncore: 10
   max_model_layers: 75
   model_name: glm
-  base_GLM_nml: glm3_sunp.nml
+  base_GLM_nml: glm3_bvre.nml
   modeled_depths:
-  - 0.1
+  - 0.0
   - 0.5
   - 1.0
   - 1.5
   - 2.0
+  - 2.5
   - 3.0
   - 3.5
   - 4.0
@@ -67,39 +68,47 @@ model_settings:
   - 9.0
   - 9.5
   - 10.0
-  - 15.0
-  - 20.0
-  - 25.0
-  - 30.0
-  par_config_file: parameter_calibration_config_sunp.csv
-  obs_config_file: observations_config_sunp.csv
-  states_config_file: states_config_sunp.csv
+  - 10.5
+  - 11.0
+  - 11.5
+  - 12.0
+  - 12.5
+  - 13.0
+  par_config_file: parameter_calibration_config_bvre.csv
+  obs_config_file: observations_config_bvre.csv
+  states_config_file: states_config_bvre.csv
 default_init:
-  lake_depth: 33
+  lake_depth: 13
   temp:
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
-  - 5
+  - 4.8
+  - 4.8
+  - 4.78
+  - 4.76
+  - 4.73
+  - 4.73
+  - 4.73
+  - 4.73
+  - 4.71
+  - 4.71
+  - 4.7
+  - 4.7
+  - 4.7
+  - 4.7
   temp_depths:
-  - 0.127
-  - 1.004
-  - 2.005
-  - 3.021
-  - 4.002
-  - 5.004
-  - 6.004
-  - 7.01
-  - 8.001
-  - 9.015
-  - 9.518
+  - 0.1
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
   salinity: 0.0
   snow_thickness: 0.0
   white_ice_thickness: 0.0
