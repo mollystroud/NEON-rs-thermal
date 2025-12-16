@@ -111,13 +111,17 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # set date of interest
 start_date <- "2013-04-19T00:00:00Z" # start of LS8
+start_date <- "2025-05-24T00:00:00Z" # start of LS8
+#end_date <- "2025-01-01T00:00:00Z" # start of LS8
+
 end_date <- paste0(Sys.Date(), "T00:00:00Z")
-site <- "BARC"
+site <- "ccre"
 # call functions
-data <- get_lst(paste0(site, "_bbox"), paste0(site, "_box_utm"), 
+data <- get_lst(bbox = get(paste0(site, "_bbox")),
+                bbox_utm = get(paste0(site, "_box_utm")), 
                 start_date, end_date)
 thermal_masked <- water_mask(data)
-vals <- get_vals(paste0(site, "_points"), thermal_masked)
+vals <- get_vals(get(paste0(site, "_points")), thermal_masked)
 vals <- na.omit(vals)
 #vals <- vals[2:3] # fix this
 vals$time <- paste0(vals$time, "T00:00:00Z")
@@ -127,7 +131,7 @@ vals$variable <- 'temperature'
 colnames(vals)[1] <- "datetime"
 colnames(vals)[2] <- "observation"
 vals$observation[vals$observation < 0] <- 0 # remove likely incorrect #s
-write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
+write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs-2025_2.csv"))
 
 # plot
 ggplot() +
@@ -139,3 +143,25 @@ ggplot() +
 
 
 
+files <- list.files('targets/ccre', full.names = T)
+alldata <- data.frame()
+for(file in files){
+  data <- read_csv(file)
+  alldata <- rbind(alldata, data)
+}
+write_csv(alldata, 'targets/ccre/ccre-targets-rs.csv')
+
+
+bvr_qual <- read_csv('targets/bvre/bvre-waterquality_2020_2024.csv')
+bvr_qual_cleaned <- bvr_qual[3:16] |>
+  pivot_longer(!DateTime)
+bvr_qual_cleaned <- bvr_qual_cleaned |>
+  mutate(depth = as.numeric(gsub("[^0-9.]", "", bvr_qual_cleaned$name))) |>
+  select(!name)
+
+bvr_qual_cleaned$DateTime <- as.Date(bvr_qual_cleaned$DateTime)
+bvr_qual_cleaned$DateTime <- paste0(bvr_qual_cleaned$DateTime, "T00:00:00Z")
+colnames(bvr_qual_cleaned) <- c("datetime", "observation", "depth")
+bvr_qual_cleaned$site_id <- "bvre"  
+bvr_qual_cleaned$variable <- "temperature"
+write_csv(bvr_qual_cleaned, 'targets/bvre/bvre-targets-insitu.csv')

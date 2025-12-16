@@ -72,3 +72,30 @@ ggplot(temp_all, aes(x = time, y = rs_temp - mean_temp)) +
 
 resids <- temp_all$rs_temp - temp_all$mean_temp
 sd(resids)
+
+
+
+################################################################################
+# Get Sunapee data
+################################################################################
+# Download here: https://portal.edirepository.org/nis/mapbrowse?packageid=edi.499.4
+sunp_insitu <- read_csv("targets/sunp/LSPALMP_1986-2022_v2023-01-22.csv")
+sunp_insitu <- sunp_insitu |>
+  filter(parameter == "waterTemperature_degC" & station == 210)|>
+  mutate(date = as.Date(date)) |>
+  select(date, depth_m, parameter, value) |>
+  mutate(site_id = 'sunp')
+colnames(sunp_insitu) <- c("datetime", "depth", "variable", "observation", "site_id")
+sunp_insitu$datetime <- paste0(sunp_insitu$datetime, "T00:00:00Z")
+
+# correct depths
+yml_config <- yaml::read_yaml("configuration/analysis/configure_flare_sunp.yml")
+depths <- cut(sunp_insitu$depth, breaks = yml_config$model_settings$modeled_depths,
+            right = FALSE, dig.lab = 4)
+pattern <- "(\\(|\\[)(-*[0-9]+\\.*[0-9]*),(-*[0-9]+\\.*[0-9]*)(\\)|\\])"
+
+sunp_insitu$depth <- as.numeric(gsub(pattern, "\\2", depths))
+write_csv(sunp_insitu, "targets/sunp/sunp-targets-insitu.csv")
+
+
+

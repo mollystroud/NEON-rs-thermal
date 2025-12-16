@@ -15,21 +15,31 @@ y_ccr <- 37.3851
 x_bvr <- -79.820864
 y_bvr <- 37.314783
 
+pts <- data.frame(
+  x = c(-79.8373, -79.94997, -79.820864, -99.115, -99.253, 
+        -89.472, -89.70, -82.019, -82.009),
+  y = c(37.30325, 37.3851, 37.314783, 47.160, 47.129, 
+        46.21, 45.999, 29.688, 29.676),
+  site = c("fcre", "ccre", "bvre", "PRLA", "PRPO", 
+           "CRAM", "LIRO", "SUGG", "BARC")
+)
 
 files <- list.files("Bathymetry_Rasters", 
                       full.names = T, recursive = T, pattern = ".tif")
-possible_res <- list()
-for(file in files){
+
+
+files_2 <- files[305000:length(files)]
+
+possible_res <- character()
+for(file in files_2){
     tif <- raster(file)
-    is_in_raster <- ((x_fcr >= xmin(tif) && x_fcr <= xmax(tif) &&
-                       y_fcr >= ymin(tif) && y_fcr <= ymax(tif)) |
-                       (x_ccr >= xmin(tif) && x_ccr <= xmax(tif) &&
-                       y_ccr >= ymin(tif) && y_ccr <= ymax(tif)) |
-                       (x_bvr >= xmin(tif) && x_bvr <= xmax(tif) &&
-                       y_bvr >= ymin(tif) && y_bvr <= ymax(tif)))
+    is_in_raster <- any(
+      pts$x >= xmin(tif) & pts$x <= xmax(tif) &
+        pts$y >= ymin(tif) & pts$y <= ymax(tif)
+    )
     if(is_in_raster == TRUE){
       print(paste0("MATCH!", file))
-      possible_res <- append(possible_res, file)
+      possible_res <- c(possible_res, file)
     } else {print(file)}
   }
 
@@ -47,7 +57,14 @@ ggplot(ccr_globathy_df, aes(x = x, y = y, fill = X112670_bathymetry)) +
 
 
 
+CRAM_bathy <- raster("Bathymetry_Rasters/1000K_1100K/1029001_1030000/1029915_bathymetry.tif")
+plot(CRAM_bathy)
 
+LIRO_bathy <- raster("Bathymetry_Rasters/1000K_1100K/1032001_1033000/1032416_bathymetry.tif")
+plot(LIRO_bathy)
+
+SUGG_bathy <- raster("Bathymetry_Rasters/1000K_1100K/1066001_1067000/1066600_bathymetry.tif")
+plot(SUGG_bathy)
 ####BVR
 bvr_globathy <- raster("Bathymetry_Rasters/1000K_1100K/1059001_1060000/1059085_bathymetry.tif")
 plot(bvr_globathy)

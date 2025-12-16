@@ -35,6 +35,21 @@ sunp_bbox <- c(xmin = -72.0714,
                xmax = -72.0300, 
                ymax = 43.43008)
 
+bvre_bbox <- c(xmin = -79.827088, 
+             ymin = 37.311798, 
+             xmax = -79.811865, 
+             ymax = 37.321694)
+
+fcre_bbox <- c(xmin = -79.840037, 
+             ymin = 37.301435, 
+             xmax = -79.833651, 
+             ymax = 37.311487)
+
+ccre_bbox <- c(xmin = -79.981728, 
+             ymin = 37.367522, 
+             xmax = -79.942552, 
+             ymax = 37.407255)
+
 # convert the bounding boxes to the correct UTM projection
 # check your UTM zone: https://mangomap.com/robertyoung/maps/69585/what-utm-zone-am-i-in-#
 # get your EPSG: https://epsg.io/
@@ -57,8 +72,19 @@ BARC_box_utm <- sf::st_bbox(
   sf::st_transform(sf::st_as_sfc(sf::st_bbox(BARC_bbox, 
                                              crs = "EPSG:4326")), "EPSG:32617"))
 sunp_box_utm <- sf::st_bbox(
-  sf::st_transform(sf::st_as_sfc(sf::st_bbox(sunapee_bbox, 
+  sf::st_transform(sf::st_as_sfc(sf::st_bbox(sunp_bbox, 
                                              crs = "EPSG:4326")), "EPSG:32618"))
+
+bvre_box_utm <- sf::st_bbox(
+  sf::st_transform(sf::st_as_sfc(sf::st_bbox(bvre_bbox, 
+                                             crs = "EPSG:4326")), "EPSG:32617"))
+fcre_box_utm <- sf::st_bbox(
+  sf::st_transform(sf::st_as_sfc(sf::st_bbox(fcre_bbox, 
+                                             crs = "EPSG:4326")), "EPSG:32617"))
+ccre_box_utm <- sf::st_bbox(
+  sf::st_transform(sf::st_as_sfc(sf::st_bbox(ccre_bbox, 
+                                             crs = "EPSG:4326")), "EPSG:32617"))
+
 
 # center most point(s) of water bodies, to avoid mixed pixel issues with thermal
 PRLA_points <- data.frame(x = c(491100, 490620), y = c(5222930, 5222770))
@@ -111,4 +137,24 @@ sunp_points <- st_as_sf(
   crs = st_crs(sunp_box_utm)    # match raster CRS!
 )
 
+fcre_points <- data.frame(x = c(603010, 603050), y = c(4129520, 4129150))
+fcre_points <- st_as_sf(
+  fcre_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(fcre_box_utm)    # match raster CRS!
+)
+# bvr
+bvre_points <- data.frame(x = c(604600), y = c(4130460))
+bvre_points <- st_as_sf(
+  bvre_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(bvre_box_utm)    # match raster CRS!
+)
+# ccr
+ccre_points <- data.frame(x = c(592750, 593050), y = c(4137200, 4139000))
+ccre_points <- st_as_sf(
+  ccre_points,
+  coords = c("x", "y"),   # change to your column names
+  crs = st_crs(ccre_box_utm)    # match raster CRS!
+)
 
