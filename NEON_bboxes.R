@@ -1,4 +1,5 @@
 # Set up all NEON lake bboxes
+library(sf)
 # get bboxes
 PRLA_bbox <- c(xmin = -99.1285, 
                       ymin = 47.1564, 

@@ -1,4 +1,4 @@
-# ################################################################################
+################################################################################
 # Code started by Molly Stroud on 11/18/25
 ################################################################################
 # load in packages
@@ -157,11 +157,14 @@ bvr_qual_cleaned <- bvr_qual[3:16] |>
   pivot_longer(!DateTime)
 bvr_qual_cleaned <- bvr_qual_cleaned |>
   mutate(depth = as.numeric(gsub("[^0-9.]", "", bvr_qual_cleaned$name))) |>
-  select(!name)
+  mutate(date = as.Date(bvr_qual_cleaned$DateTime)) |>
+  select(!c(name, DateTime))
+bvr_qual_cleaned <- bvr_qual_cleaned |>
+  group_by(date, depth) |>
+  summarize(value_avg = mean(value))
 
-bvr_qual_cleaned$DateTime <- as.Date(bvr_qual_cleaned$DateTime)
-bvr_qual_cleaned$DateTime <- paste0(bvr_qual_cleaned$DateTime, "T00:00:00Z")
-colnames(bvr_qual_cleaned) <- c("datetime", "observation", "depth")
+bvr_qual_cleaned$date <- paste0(bvr_qual_cleaned$date, "T00:00:00Z")
+colnames(bvr_qual_cleaned) <- c("datetime", "depth", "observation")
 bvr_qual_cleaned$site_id <- "bvre"  
 bvr_qual_cleaned$variable <- "temperature"
 write_csv(bvr_qual_cleaned, 'targets/bvre/bvre-targets-insitu.csv')

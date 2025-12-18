@@ -6,15 +6,6 @@ library(raster)
 library(terra)
 library(viridis)
 
-x_fcr <-  -79.8373 # doesn't exist in GLOBathy
-y_fcr <- 37.30325
-
-x_ccr <- -79.94997
-y_ccr <- 37.3851
-  
-x_bvr <- -79.820864
-y_bvr <- 37.314783
-
 pts <- data.frame(
   x = c(-79.8373, -79.94997, -79.820864, -99.115, -99.253, 
         -89.472, -89.70, -82.019, -82.009),
@@ -27,11 +18,8 @@ pts <- data.frame(
 files <- list.files("Bathymetry_Rasters", 
                       full.names = T, recursive = T, pattern = ".tif")
 
-
-files_2 <- files[305000:length(files)]
-
 possible_res <- character()
-for(file in files_2){
+for(file in files){
     tif <- raster(file)
     is_in_raster <- any(
       pts$x >= xmin(tif) & pts$x <= xmax(tif) &
@@ -65,6 +53,7 @@ plot(LIRO_bathy)
 
 SUGG_bathy <- raster("Bathymetry_Rasters/1000K_1100K/1066001_1067000/1066600_bathymetry.tif")
 plot(SUGG_bathy)
+
 ####BVR
 bvr_globathy <- raster("Bathymetry_Rasters/1000K_1100K/1059001_1060000/1059085_bathymetry.tif")
 plot(bvr_globathy)
