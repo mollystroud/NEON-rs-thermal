@@ -2,13 +2,13 @@
 # Code started by Molly Stroud on 12/16/25
 ################################################################################
 require(pacman)
-p_load('tidyverse', 'zarr', 'Rarr', 'reticulate', 'sf')
+p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
 
 ################################################################################
-# Use Python env where we've called os.environ["SSL_CERT_FILE"] = certifi.where()
+# Use Python env
 ################################################################################
-use_virtualenv("~/Desktop/postdoc/.venv", required = TRUE)
-py_config()
+reticulate::use_virtualenv("~/Desktop/postdoc/.venv/", required = TRUE)
+reticulate::py_config()
 
 # python libraries
 certifi <- import("certifi")
@@ -42,7 +42,59 @@ vars <- c(
   'downward_short_wave_radiation_flux_surface',
   'precipitation_surface'
 )
-# function
+
+# function: convert dataframe to hourly time steps
+get_hourly <- function(df){
+  parameters <- unique(df$parameter)
+  datetime <- seq(min(df$datetime), max(df$datetime), by = "1 hour")
+  variables <- unique(df$variable)
+  sites <- unique(df$site_id)
+  
+  parameter_maxtime <- df |>
+    dplyr::group_by(site_id, family, parameter) |>
+    dplyr::summarise(max_time = max(datetime), .groups = "drop")
+  
+  full_time <- expand.grid(sites, parameters, datetime, variables) |>
+    dplyr::rename(site_id = Var1,
+                  parameter = Var2,
+                  datetime = Var3,
+                  variable = Var4) |>
+    dplyr::mutate(datetime = lubridate::as_datetime(datetime)) |>
+    dplyr::arrange(site_id, parameter, variable, datetime) |>
+    dplyr::left_join(parameter_maxtime, by = c("site_id","parameter")) |>
+    dplyr::filter(datetime <= max_time) |>
+    dplyr::select(-c("max_time")) |>
+    dplyr::distinct()
+  
+  states <- df |>
+    dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
+    dplyr::group_by(site_id, parameter, variable) |>
+    dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
+    dplyr::filter(variable %in% c("air_pressure", "relative_humidity",
+                                  "air_temperature", "eastward_wind", "northward_wind")) |>
+    dplyr::arrange(site_id, parameter, datetime) |>
+    dplyr::mutate(prediction =  imputeTS::na_interpolation(prediction, option = "linear")) |>
+    dplyr::mutate(prediction = ifelse(variable == "air_temperature", prediction + 273, prediction)) |>
+    dplyr::mutate(prediction = ifelse(variable == "RH", prediction/100, prediction)) |>
+    dplyr::ungroup()
+  
+  
+  fluxes <- df |>
+    dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
+    dplyr::group_by(site_id, family, parameter, variable) |>
+    dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
+    dplyr::filter(variable %in% c("precipitation_flux","surface_downwelling_longwave_flux_in_air","surface_downwelling_shortwave_flux_in_air")) |>
+    dplyr::arrange(site_id, family, parameter, datetime) |>
+    tidyr::fill(prediction, .direction = "up") |>
+    dplyr::mutate(prediction = ifelse(variable == "precipitation_flux", prediction / (6 * 60 * 60), prediction)) |>
+    dplyr::ungroup()
+  
+  hourly_df <- dplyr::bind_rows(states, fluxes) |>
+    dplyr::arrange(site_id, family, variable, datetime)
+  return(hourly_df)
+}
+
+# function: get met data from dynamical.org
 get_temp_gefs <- function(site_id, start_time) {
   lat_min = get(paste0(site_id, '_bbox'))[[2]]
   lat_max = get(paste0(site_id, '_bbox'))[[4]]
@@ -91,57 +143,39 @@ get_temp_gefs <- function(site_id, start_time) {
   temp_df$variable[temp_df$variable == "precipitation_surface"] <- "precipitation_flux"
   # change to UTC
   attr(temp_df$datetime, "tzone") <- "UTC"
-  return(temp_df)
+  df <- get_hourly(temp_df)
+  df$reference_datetime <- as.Date(start_time)
+  return(df)
 }
 
 
 
-df <- get_temp_gefs(site_id = 'fcre', start_time = "2025-02-10")
+# run
+start_date <- as.Date("2020-01-01")
+end_date <- as.Date("2021-01-01")
+dates <- seq(start_date, end_date, by = "1 day")
 
+allmetdata <- data.frame()
+for(date in dates){
+  print(as.Date(date))
+  metdata <- get_temp_gefs(site_id = 'fcre', start_time = as.Date(date))
+  allmetdata <- rbind(allmetdata, metdata)
+}
 
-parameters <- unique(df$parameter)
-datetime <- seq(min(df$datetime), max(df$datetime), by = "1 hour")
-variables <- unique(df$variable)
-sites <- unique(df$site_id)
-
-parameter_maxtime <- df |>
-  dplyr::group_by(site_id, family, parameter) |>
-  dplyr::summarise(max_time = max(datetime), .groups = "drop")
-
-full_time <- expand.grid(sites, parameters, datetime, variables) |>
-  dplyr::rename(site_id = Var1,
-                parameter = Var2,
-                datetime = Var3,
-                variable = Var4) |>
-  dplyr::mutate(datetime = lubridate::as_datetime(datetime)) |>
-  dplyr::arrange(site_id, parameter, variable, datetime) |>
-  dplyr::left_join(parameter_maxtime, by = c("site_id","parameter")) |>
-  dplyr::filter(datetime <= max_time) |>
-  dplyr::select(-c("max_time")) |>
-  dplyr::distinct()
-
-states <- df |>
-  dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
-  dplyr::group_by(site_id, parameter, variable) |>
-  dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
-  dplyr::filter(variable %in% c("air_pressure", "relative_humidity",
-                                "air_temperature", "eastward_wind", "northward_wind")) |>
-  dplyr::arrange(site_id, parameter, datetime) |>
-  dplyr::mutate(prediction =  imputeTS::na_interpolation(prediction, option = "linear")) |>
-  dplyr::mutate(prediction = ifelse(variable == "air_temperature", prediction + 273, prediction)) |>
-  dplyr::mutate(prediction = ifelse(variable == "RH", prediction/100, prediction)) |>
-  dplyr::ungroup()
-
-
-fluxes <- df |>
-  dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
-  dplyr::group_by(site_id, family, parameter, variable) |>
-  dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
-  dplyr::filter(variable %in% c("precipitation_flux","surface_downwelling_longwave_flux_in_air","surface_downwelling_shortwave_flux_in_air")) |>
-  dplyr::arrange(site_id, family, parameter, datetime) |>
-  tidyr::fill(prediction, .direction = "up") |>
-  dplyr::mutate(prediction = ifelse(variable == "precipitation_flux", prediction / (6 * 60 * 60), prediction)) |>
-  dplyr::ungroup()
-
-hourly_df <- dplyr::bind_rows(states, fluxes) |>
-  dplyr::arrange(site_id, family, variable, datetime)
+# save out (can't use arrow here due to earlier loading of python)
+allmetdata |>
+  group_by(reference_datetime, site_id) |>
+  group_walk(~ {
+    dir <- file.path(
+      "drivers/met/test/stage2",
+      paste0("reference_datetime=", .y$reference_datetime),
+      paste0("site_id=", .y$site_id)
+    )
+    
+    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+    
+    arrow::write_parquet(
+      .x,
+      file.path(dir, "part-0.parquet")
+    )
+  })
