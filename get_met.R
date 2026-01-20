@@ -18,7 +18,6 @@ builtins <- import("builtins", convert = FALSE)
 # make sure http can be accessed
 os$environ["SSL_CERT_FILE"] <- certifi$where()
 
-
 # open the zarr from dynamical.org
 ds <- xr$open_zarr(
   "https://data.dynamical.org/noaa/gefs/forecast-35-day/latest.zarr?email=optional@email.com",
@@ -31,6 +30,7 @@ ds <- xr$open_zarr(
 
 # use already defined bboxes
 source("NEON_bboxes.R")
+source("to_hourly.R")
 # variables of interest
 vars <- c(
   'temperature_2m',
@@ -42,56 +42,6 @@ vars <- c(
   'downward_short_wave_radiation_flux_surface',
   'precipitation_surface'
 )
-
-# function: convert dataframe to hourly time steps
-get_hourly <- function(df){
-  parameters <- unique(df$parameter)
-  datetime <- seq(min(df$datetime), max(df$datetime), by = "1 hour")
-  variables <- unique(df$variable)
-  sites <- unique(df$site_id)
-  
-  parameter_maxtime <- df |>
-    dplyr::group_by(site_id, family, parameter) |>
-    dplyr::summarise(max_time = max(datetime), .groups = "drop")
-  
-  full_time <- expand.grid(sites, parameters, datetime, variables) |>
-    dplyr::rename(site_id = Var1,
-                  parameter = Var2,
-                  datetime = Var3,
-                  variable = Var4) |>
-    dplyr::mutate(datetime = lubridate::as_datetime(datetime)) |>
-    dplyr::arrange(site_id, parameter, variable, datetime) |>
-    dplyr::left_join(parameter_maxtime, by = c("site_id","parameter")) |>
-    dplyr::filter(datetime <= max_time) |>
-    dplyr::select(-c("max_time")) |>
-    dplyr::distinct()
-  
-  states <- df |>
-    dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
-    dplyr::group_by(site_id, parameter, variable) |>
-    dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
-    dplyr::filter(variable %in% c("air_pressure", "relative_humidity",
-                                  "air_temperature", "eastward_wind", "northward_wind")) |>
-    dplyr::arrange(site_id, parameter, datetime) |>
-    dplyr::mutate(prediction =  imputeTS::na_interpolation(prediction, option = "linear")) |>
-    dplyr::mutate(prediction = ifelse(variable == "air_temperature", prediction + 273, prediction)) |>
-    dplyr::mutate(prediction = ifelse(variable == "RH", prediction/100, prediction)) |>
-    dplyr::ungroup()
-  
-  fluxes <- df |>
-    dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
-    dplyr::group_by(site_id, family, parameter, variable) |>
-    dplyr::right_join(full_time, by = c("site_id", "parameter", "datetime", "family", "variable")) |>
-    dplyr::filter(variable %in% c("precipitation_flux","surface_downwelling_longwave_flux_in_air","surface_downwelling_shortwave_flux_in_air")) |>
-    dplyr::arrange(site_id, family, parameter, datetime) |>
-    tidyr::fill(prediction, .direction = "up") |>
-    dplyr::mutate(prediction = ifelse(variable == "precipitation_flux", prediction / (6 * 60 * 60), prediction)) |>
-    dplyr::ungroup()
-  
-  hourly_df <- dplyr::bind_rows(states, fluxes) |>
-    dplyr::arrange(site_id, family, variable, datetime)
-  return(hourly_df)
-}
 
 # function: get met data from dynamical.org
 get_temp_gefs <- function(site_id, start_time) {
@@ -140,16 +90,20 @@ get_temp_gefs <- function(site_id, start_time) {
   temp_df$variable[temp_df$variable == "downward_long_wave_radiation_flux_surface"] <- "surface_downwelling_longwave_flux_in_air"
   temp_df$variable[temp_df$variable == "downward_short_wave_radiation_flux_surface"] <- "surface_downwelling_shortwave_flux_in_air"
   temp_df$variable[temp_df$variable == "precipitation_surface"] <- "precipitation_flux"
-  # change to UTC
+  var_order <- names(temp_df)
+  # set as UTC
   temp_df$datetime <- as_datetime(temp_df$datetime)
   attr(temp_df$datetime, "tzone") <- "UTC"
-  df <- get_hourly(temp_df)
+  # call hourly function
+  df <- get_hourly(temp_df, mean_lon, mean_lat)
   return(df)
 }
 
 # can't be before 2020-10-01
-metdata <- get_temp_gefs(site_id = 'fcre', start_time = "2021-09-27")
+metdata <- get_temp_gefs(site_id = 'BARC', start_time = "2021-09-27")
 
+
+# FUNCTIONIZE
 # run
 start_date <- as.Date("2020-10-01")
 end_date <- as.Date("2021-01-01")
