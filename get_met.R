@@ -1,8 +1,8 @@
 ################################################################################
 # Code started by Molly Stroud on 12/16/25
+# Download data from dynamical.org and put into correct formatting for FLARE
 ################################################################################
-require(pacman)
-p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
+pacman::p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
 
 ################################################################################
 # Use Python env
@@ -78,7 +78,6 @@ get_hourly <- function(df){
     dplyr::mutate(prediction = ifelse(variable == "RH", prediction/100, prediction)) |>
     dplyr::ungroup()
   
-  
   fluxes <- df |>
     dplyr::select(site_id, family, parameter, datetime, variable, prediction) |>
     dplyr::group_by(site_id, family, parameter, variable) |>
@@ -142,25 +141,28 @@ get_temp_gefs <- function(site_id, start_time) {
   temp_df$variable[temp_df$variable == "downward_short_wave_radiation_flux_surface"] <- "surface_downwelling_shortwave_flux_in_air"
   temp_df$variable[temp_df$variable == "precipitation_surface"] <- "precipitation_flux"
   # change to UTC
+  temp_df$datetime <- as_datetime(temp_df$datetime)
   attr(temp_df$datetime, "tzone") <- "UTC"
   df <- get_hourly(temp_df)
-  df$reference_datetime <- as.Date(start_time)
   return(df)
 }
 
-
+# can't be before 2020-10-01
+metdata <- get_temp_gefs(site_id = 'fcre', start_time = "2021-09-27")
 
 # run
-start_date <- as.Date("2020-01-01")
+start_date <- as.Date("2020-10-01")
 end_date <- as.Date("2021-01-01")
 dates <- seq(start_date, end_date, by = "1 day")
 
 allmetdata <- data.frame()
 for(date in dates){
   print(as.Date(date))
-  metdata <- get_temp_gefs(site_id = 'fcre', start_time = as.Date(date))
+  metdata <- get_temp_gefs(site_id = 'fcre', start_time = as.character(as.Date(date))) # try as character
+  metdata$reference_datetime <- as.Date(date)
   allmetdata <- rbind(allmetdata, metdata)
 }
+
 
 # save out (can't use arrow here due to earlier loading of python)
 allmetdata |>
@@ -171,11 +173,16 @@ allmetdata |>
       paste0("reference_datetime=", .y$reference_datetime),
       paste0("site_id=", .y$site_id)
     )
-    
     dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-    
     arrow::write_parquet(
       .x,
       file.path(dir, "part-0.parquet")
     )
   })
+
+
+# test
+stage2 <- arrow::read_parquet('/Users/mollystroud/Desktop/postdoc/NEON-rs-thermal/drivers/met/gefs-v12/stage2/reference_datetime=2020-10-01/site_id=fcre/part-0.parquet')
+stage2_dynamical <- arrow::read_parquet('/Users/mollystroud/Desktop/postdoc/NEON-rs-thermal/drivers/met/test/stage2/reference_datetime=2020-10-01/site_id=fcre/part-0.parquet')
+
+

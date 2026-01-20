@@ -2,8 +2,7 @@
 # Code started by Molly Stroud on 11/18/25
 ################################################################################
 # load in packages
-require(pacman)
-p_load('rstac', 'terra', 'stars', 'ggplot2', 'tidyterra', 'viridis', 
+pacman::p_load('rstac', 'terra', 'stars', 'ggplot2', 'tidyterra', 'viridis', 
        'EBImage', 'gdalcubes', 'tmap', 'dplyr', 'tidyverse', 'sf')
 ################################################################################
 ## the below code is designed to pull landsat thermal imagery over a specified 
@@ -74,6 +73,7 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
 ################################################################################
 # function to get only water pixels and correct temp
 ################################################################################
+thermal_data <- data
 water_mask <- function(thermal_data) {
   # make array
   thermal_arr <- thermal_data$thermal
@@ -89,7 +89,6 @@ water_mask <- function(thermal_data) {
   thermal_masked_vec$thermal_C <- thermal_C
   return(thermal_masked_vec)
 }
-
 ################################################################################
 # function to extract values and write out csv
 ################################################################################
@@ -107,43 +106,53 @@ get_vals <- function(points, thermal_data){
 }
 
 ################################################################################
+# function to clean up data for input to FLARE
+################################################################################
+clean_data <- function(values){
+  values <- na.omit(values)
+  #vals <- vals[2:3] # fix this
+  values$time <- paste0(values$time, "T00:00:00Z")
+  values$site_id <- site
+  values$depth <- 0
+  values$variable <- 'temperature'
+  colnames(values)[1] <- "datetime"
+  colnames(values)[2] <- "observation"
+  values$observation[values$observation < 0] <- 0 # remove likely incorrect #s
+  return(values)
+}
+
+################################################################################
 # call functions
 ################################################################################
 # set date of interest
-start_date <- "2013-04-19T00:00:00Z" # start of LS8
-start_date <- "2025-05-24T00:00:00Z" # start of LS8
-#end_date <- "2025-01-01T00:00:00Z" # start of LS8
-
+#start_date <- "2013-04-19T00:00:00Z" # start of LS8
+start_date <- "2025-12-01T00:00:00Z" # start of LS8
 end_date <- paste0(Sys.Date(), "T00:00:00Z")
-site <- "ccre"
+site <- "fcre"
 # call functions
 data <- get_lst(bbox = get(paste0(site, "_bbox")),
                 bbox_utm = get(paste0(site, "_box_utm")), 
                 start_date, end_date)
 thermal_masked <- water_mask(data)
 vals <- get_vals(get(paste0(site, "_points")), thermal_masked)
-vals <- na.omit(vals)
-#vals <- vals[2:3] # fix this
-vals$time <- paste0(vals$time, "T00:00:00Z")
-vals$site_id <- site
-vals$depth <- 0
-vals$variable <- 'temperature'
-colnames(vals)[1] <- "datetime"
-colnames(vals)[2] <- "observation"
-vals$observation[vals$observation < 0] <- 0 # remove likely incorrect #s
-write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs-2025_2.csv"))
+final <- clean_data(vals)
+
+# write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
 
 # plot
 ggplot() +
-  geom_stars(data = thermal_masked["thermal_C"]) +
+  geom_stars(data = thermal_masked["thermal_C"], color = 'transparent') +
   facet_wrap(~time) +
-  annotate("point", x = 401500, y = 3284600, color = 'red') +
+  #annotate("point", x = 401500, y = 3284600, color = 'red') +
   theme_classic() +
-  scale_fill_viridis()
+  scale_fill_viridis(na.value = 'transparent') +
+  labs(fill = "Temperature (C)")
+  
 
 
-
+# may need to bind data
 files <- list.files('targets/ccre', full.names = T)
+files <- files[2:9]
 alldata <- data.frame()
 for(file in files){
   data <- read_csv(file)
@@ -153,6 +162,9 @@ write_csv(alldata, 'targets/ccre/ccre-targets-rs.csv')
 
 
 bvr_qual <- read_csv('targets/bvre/bvre-waterquality_2020_2024.csv')
+bvr_qual <- read_csv('targets/ccre/ccre-waterquality_2021_2024.csv')
+
+
 bvr_qual_cleaned <- bvr_qual[3:16] |>
   pivot_longer(!DateTime)
 bvr_qual_cleaned <- bvr_qual_cleaned |>
@@ -161,10 +173,12 @@ bvr_qual_cleaned <- bvr_qual_cleaned |>
   select(!c(name, DateTime))
 bvr_qual_cleaned <- bvr_qual_cleaned |>
   group_by(date, depth) |>
-  summarize(value_avg = mean(value))
+  summarize(value_avg = mean(value, na.rm = T))
+bvr_qual_cleaned <- na.omit(bvr_qual_cleaned)
 
 bvr_qual_cleaned$date <- paste0(bvr_qual_cleaned$date, "T00:00:00Z")
 colnames(bvr_qual_cleaned) <- c("datetime", "depth", "observation")
 bvr_qual_cleaned$site_id <- "bvre"  
 bvr_qual_cleaned$variable <- "temperature"
+write_csv(bvr_qual_cleaned, 'targets/ccre/ccre-targets-insitu.csv')
 write_csv(bvr_qual_cleaned, 'targets/bvre/bvre-targets-insitu.csv')
