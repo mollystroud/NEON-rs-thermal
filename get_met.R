@@ -44,7 +44,7 @@ vars <- c(
 )
 
 # function: get met data from dynamical.org
-get_temp_gefs <- function(site_id, start_time) {
+get_temp_gefs <- function(site_id, start_time, lead_time = TRUE) {
   lat_min = get(paste0(site_id, '_bbox'))[[2]]
   lat_max = get(paste0(site_id, '_bbox'))[[4]]
   lon_min = get(paste0(site_id, '_bbox'))[[1]]
@@ -57,11 +57,19 @@ get_temp_gefs <- function(site_id, start_time) {
     longitude = mean_lon,
     method = "nearest"
   )
-  temp_r <- temp$assign_coords(
-    lead_hours = temp$lead_time$astype("timedelta64[h]")$astype("int"),
-    member_id  = temp$ensemble_member,
-    init_time = temp$init_time
-  )
+  if(lead_time == TRUE){
+    temp_r <- temp$assign_coords(
+      lead_hours = temp$lead_time$astype("timedelta64[h]")$astype("int"),
+      member_id  = temp$ensemble_member,
+      init_time = temp$init_time
+    )
+  } else {
+    temp_r <- temp$assign_coords(
+      lead_hours = lead_time,
+      member_id  = temp$ensemble_member,
+      init_time = temp$init_time
+    )
+  }
   temp_df <- temp_r$to_dataframe() |>
     py_to_r() |>
     tibble::as_tibble() |>
@@ -99,44 +107,74 @@ get_temp_gefs <- function(site_id, start_time) {
   return(df)
 }
 
-# can't be before 2020-10-01
-metdata <- get_temp_gefs(site_id = 'BARC', start_time = "2021-09-27")
-
-
-# FUNCTIONIZE
-# run
+# stage 2 function
 start_date <- as.Date("2020-10-01")
 end_date <- as.Date("2021-01-01")
-dates <- seq(start_date, end_date, by = "1 day")
-
-allmetdata <- data.frame()
-for(date in dates){
-  print(as.Date(date))
-  metdata <- get_temp_gefs(site_id = 'fcre', start_time = as.character(as.Date(date))) # try as character
-  metdata$reference_datetime <- as.Date(date)
-  allmetdata <- rbind(allmetdata, metdata)
+get_stage_2 <- function(start_date, end_date, site){
+  # get date sequence
+  dates <- seq(as.Date(start_date), 
+               as.Date(end_date), 
+               by = "1 day")
+  # empty df
+  stage2 <- data.frame()
+  # for each date, get met data and bind together
+  for(date in dates){
+    print(as.Date(date))
+    metdata <- get_temp_gefs(site_id = site, 
+                             start_time = as.character(as.Date(date))) # try as character
+    metdata$reference_datetime <- as.Date(date)
+    stage2 <- rbind(stage2, metdata)
+  }
+  # save out (can't use arrow here due to earlier loading of python)
+  stage2 |>
+    group_by(reference_datetime, site_id) |>
+    group_walk(~ {
+      dir <- file.path(
+        "drivers/met/test/stage2",
+        paste0("reference_datetime=", .y$reference_datetime),
+        paste0("site_id=", .y$site_id)
+      )
+      dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+      arrow::write_parquet(
+        .x,
+        file.path(dir, "part-0.parquet")
+      )
+    })
+  
 }
 
+# stage 3 function
+start_date <- ("2020-10-01")
+get_stage_3 <- function(start_date, site){
+  # get date sequence
+  dates <- seq(as.POSIXct(as.Date(start_date) - (31)), 
+               as.POSIXct(start_date), 
+               by = ("3 hours"))
+  # empty df
+  stage3 <- data.frame()
+  # for each date, get met data and bind together
+  for(time in dates){
+    print(as.POSIXct(time))
+    metdata <- get_temp_gefs(site_id = site, 
+                             start_time = as.character(as.POSIXct(time)),
+                             lead_time = 0)
+    stage3 <- rbind(stage3, metdata)
+  }
+  
+  stage3 |>
+    group_by(site_id) |>
+    group_walk(~ {
+      dir <- file.path(
+        "drivers/met/test/stage3",
+        paste0("site_id=", .y$site_id)
+      )
+      dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+      arrow::write_parquet(
+        .x,
+        file.path(dir, "part-0.parquet")
+      )
+    })
+  
+}
 
-# save out (can't use arrow here due to earlier loading of python)
-allmetdata |>
-  group_by(reference_datetime, site_id) |>
-  group_walk(~ {
-    dir <- file.path(
-      "drivers/met/test/stage2",
-      paste0("reference_datetime=", .y$reference_datetime),
-      paste0("site_id=", .y$site_id)
-    )
-    dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-    arrow::write_parquet(
-      .x,
-      file.path(dir, "part-0.parquet")
-    )
-  })
-
-
-# test
-stage2 <- arrow::read_parquet('/Users/mollystroud/Desktop/postdoc/NEON-rs-thermal/drivers/met/gefs-v12/stage2/reference_datetime=2020-10-01/site_id=fcre/part-0.parquet')
-stage2_dynamical <- arrow::read_parquet('/Users/mollystroud/Desktop/postdoc/NEON-rs-thermal/drivers/met/test/stage2/reference_datetime=2020-10-01/site_id=fcre/part-0.parquet')
-
-
+get_stage_3("2020-10-01", 'fcre')
