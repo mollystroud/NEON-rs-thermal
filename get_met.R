@@ -140,7 +140,7 @@ get_stage_2 <- function(start_date, end_date, site){
         file.path(dir, "part-0.parquet")
       )
     })
-  
+  print("Stage 2 data downloaded!")
 }
 
 # stage 3 function
@@ -174,7 +174,7 @@ get_stage_3 <- function(start_date, site){
         file.path(dir, "part-0.parquet")
       )
     })
-  
+  print("Stage 3 data downloaded!")
 }
 
 get_stage_3("2020-10-01", 'fcre')
