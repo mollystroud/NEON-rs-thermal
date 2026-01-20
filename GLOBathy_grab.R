@@ -1,18 +1,22 @@
+################################################################################
 # GLOBathy test script
-
+################################################################################
 library(tidyverse)
 library(sf)
 library(raster)
 library(terra)
 library(viridis)
-
+################################################################################
+# Open up GLOBathy and loop through all files, open each and see if any of our
+# reservoirs are in it
+################################################################################
 pts <- data.frame(
   x = c(-79.8373, -79.94997, -79.820864, -99.115, -99.253, 
-        -89.472, -89.70, -82.019, -82.009),
+        -89.472, -89.70, -82.019, -82.009, -72.055),
   y = c(37.30325, 37.3851, 37.314783, 47.160, 47.129, 
-        46.21, 45.999, 29.688, 29.676),
+        46.21, 45.999, 29.688, 29.676, 43.375),
   site = c("fcre", "ccre", "bvre", "PRLA", "PRPO", 
-           "CRAM", "LIRO", "SUGG", "BARC")
+           "CRAM", "LIRO", "SUGG", "BARC", "sunp")
 )
 
 files <- list.files("Bathymetry_Rasters", 
@@ -28,11 +32,13 @@ for(file in files){
     if(is_in_raster == TRUE){
       print(paste0("MATCH!", file))
       possible_res <- c(possible_res, file)
+      #break
     } else {print(file)}
   }
 
 
-#####available reservoirs (and sunp somewhere)
+################################################################################
+#####available reservoir locations
 ccr_globathy <- raster("Bathymetry_Rasters/100K_200K/112001_113000/112670_bathymetry.tif")
 plot(ccr_globathy)
 
@@ -44,6 +50,9 @@ plot(LIRO_bathy)
 
 SUGG_bathy <- raster("Bathymetry_Rasters/1000K_1100K/1066001_1067000/1066600_bathymetry.tif")
 plot(SUGG_bathy)
+
+sunp_bathy <- raster("Bathymetry_Rasters/1_100K/9001_10000/9068_bathymetry.tif")
+plot(sunp_bathy)
 
 bvr_globathy <- raster("Bathymetry_Rasters/1000K_1100K/1059001_1060000/1059085_bathymetry.tif")
 plot(bvr_globathy)
@@ -86,8 +95,9 @@ ggplot(bvr, aes(fill = file_num)) +
   labs(fill = "Depth")
 
 
-
-############ convert to H/A
+################################################################################
+# convert to H/A for glm files
+################################################################################
 bvr_globathy <- raster("Bathymetry_Rasters/1000K_1100K/1059001_1060000/1059085_bathymetry.tif")
 plot(bvr_globathy)
 bvr_globathy_df <- as.data.frame(bvr_globathy, xy = T)
@@ -118,6 +128,11 @@ SUGG_globathy_df <- as.data.frame(SUGG_globathy, xy = T)
 SUGG_globathy_df <- na.omit(SUGG_globathy_df)
 colnames(SUGG_globathy_df) <- c("Longitude", "Latitude", "Elevation")
 
+sunp_bathy <- raster("Bathymetry_Rasters/1_100K/9001_10000/9068_bathymetry.tif")
+plot(sunp_bathy)
+sunp_globathy_df <- as.data.frame(sunp_bathy, xy = T)
+sunp_globathy_df <- na.omit(sunp_globathy_df)
+colnames(sunp_globathy_df) <- c("Longitude", "Latitude", "Elevation")
 
 library(tidyverse)
 library(plotly)
@@ -132,16 +147,16 @@ library(sf)
 
 
 #yarr_bathy_df <- readr::read_csv('./bathymetry/YARR_bathy.csv') 
-min_elevation <- min(SUGG_globathy_df$Elevation)
+min_elevation <- min(sunp_globathy_df$Elevation)
 
-SUGG_globathy_df <- SUGG_globathy_df |> 
+sunp_globathy_df <- sunp_globathy_df |> 
   dplyr::mutate(height = Elevation - min(Elevation)) |> 
   dplyr::select(Longitude, Latitude, height) 
 
 ## USE MIN ELEVATION VALUE PLUS DEPTH (M) TO GET AHD NEEDED FOR HEIGHT / SFC AREA CURVE FOR GLM
 
 #data_grid <- griddify(bvr_globathy_df, nlon = 75, nlat = 80) 
-data_grid <- griddify(SUGG_globathy_df, nlon = 20, nlat = 23) 
+data_grid <- griddify(sunp_globathy_df, nlon = 391, nlat = 188) 
 plot(data_grid)
 #plot(bvr_globathy)
 area_grid <- raster::area(data_grid, na.rm = TRUE, weights = FALSE)
@@ -151,12 +166,12 @@ area_grid <- area_grid[!is.na(area_grid)]
 
 surface_area <- length(area_grid)*mean(area_grid) 
 
-area_layers <- approx.bathy(Zmax = abs(max(SUGG_globathy_df$height)), 
+area_layers <- approx.bathy(Zmax = abs(max(sunp_globathy_df$height)), 
                             surface_area*1000000,
-                            Zmean= mean(SUGG_globathy_df$height), 
+                            Zmean= mean(sunp_globathy_df$height), 
                             method = "cone",
                             zinterval = 1,
-                            depths = seq(0, abs(max(SUGG_globathy_df$height)), by = 1))
+                            depths = seq(0, abs(max(sunp_globathy_df$height)), by = 1))
 
 #convert depth back to elevation
 area_layers$depths <- area_layers$depths + min_elevation
@@ -173,7 +188,9 @@ area_layers$depths <- area_layers$depths*-1 #make it so that surface (0m) is at 
 #ccre
 #area_layers$depths <- area_layers$depths + 356.6
 #SUGG
-area_layers$depths <- area_layers$depths + 30
+#area_layers$depths <- area_layers$depths + 30
+#sunp
+area_layers$depths <- area_layers$depths + 335
 
 
 plot(area_layers$Area.at.z, area_layers$depths, type = 'l', 
@@ -190,11 +207,13 @@ LIRO_bathy <- data.frame(H = c(492, 493, 494, 495, 496, 497, 498, 499, 500, 501,
                          A = c(1200.896814, 4445.377, 7689.857634, 14786.16, 21882.46835, 37773.74, 53665.01806, 77701.28, 101737.5469, 143813.8, 159640.5, 175467.2354, 185890.0044))
 SUGG_bathy <- data.frame(H = c(25.0, 25.9, 26.4, 26.9, 27.4, 27.9, 28.4, 29.0),
                         A = c(0, 125.6347, 53435.4847, 208192.2158, 263941.7309, 288249.2588, 298163.4627, 307362.1855))
+sunp_bathy <- data.frame(H = c(299.43, 299.943, 300.443, 300.943, 301.443, 301.943, 302.443, 302.943, 303.443, 303.943, 304.443, 304.943, 305.443, 305.943, 306.443, 306.943, 307.443, 307.943, 308.443, 308.943, 309.443, 309.943, 310.443, 310.943, 311.443, 311.943, 312.443, 312.943, 313.443, 313.943, 314.443, 314.943, 315.443, 315.943, 316.443, 316.943, 317.443, 317.943, 318.443, 318.943, 319.443, 319.943, 320.443, 320.943, 321.443, 321.943, 322.443, 322.943, 323.443, 323.943, 324.443, 324.943, 325.443, 325.943, 326.443, 326.943, 327.443, 327.943, 328.443, 328.943, 329.443, 329.943, 330.443, 330.943, 331.443, 331.943, 332.343, 332.443, 332.543, 332.643, 332.743, 332.843, 332.943, 333.043, 333.143, 333.243, 333.343, 333.443, 333.543, 333.643, 333.743, 333.943),
+                         A = c(1, 16.90309, 38.87712, 64.23176, 158.88908, 7254.80801, 25205.89398, 33207.81875, 41551.18602, 51853.6219, 62734.1436, 79030.41666, 105037.51731, 133941.80829, 168576.24818, 214836.63623, 269137.82616, 327112.05845, 401221.9844, 483528.22071, 575947.57823, 676930.04325, 797467.69789, 925704.7119, 1088626.8751, 1283336.99713, 1505854.39934, 1740820.93038, 1988527.32348, 2234911.89462, 2485285.59597, 2723309.89675, 2978076.71227, 3264022.97524, 3653258.97559, 4050485.06854, 4414109.50064, 4796077.1705, 5158332.45198, 5579849.98152, 6016348.72339, 6468883.43068, 6928267.27171, 7476296.00935, 8028820.97004, 8623779.45825, 9274820.72252, 9852960.63206, 10365149.7392, 10843023.87491, 11253594.96068, 11644117.28649, 12013032.38706, 12356310.56475, 12673823.35603, 12988489.66626, 13285122.06535, 13576406.32546, 13863498.61821, 14148319.13512, 14418854.84716, 14691317.51194, 14951571.07182, 15234317.57908, 15510517.51797, 15780918.00526, 16009460, 16071489, 16135107, 16203453, 16273655, 16349525, 16489737, 16603406, 16760708, 16788809, 16804233, 16826128, 16844170, 16863779, 16885473, 16934251.6))
 
 # comp
 ggplot() +
   geom_line(data = area_layers, aes(x = Area.at.z, y = depths, color = 'GLOBathy')) +
-  geom_line(data = SUGG_bathy, aes(x = A, y = H, color = 'Ours')) +
+  geom_line(data = sunp_bathy, aes(x = A, y = H, color = 'Ours')) +
   theme_classic() +
   labs(x = 'Area at Depth (m2)', y = 'Depth (m)', 
        title = 'SUGG Bathymetry H/A', color = element_blank()) +
@@ -210,5 +229,46 @@ ggplot() +
 # }
 # 
 # paste("Volume (m^3):", volume_m3(area_layers, h = 1, n = seq(0,abs(min(yarr_bathy_df$Elevation)),1)))
+
+################################################################################
+# reorganize GLOBathy
+################################################################################
+files <- list.files("Bathymetry_Rasters", 
+                    full.names = T, recursive = T, pattern = ".tif")
+
+file_index <- data.frame()
+for(file in files[1274079:length(files)]){
+  tif <- raster(file)
+  #plot(tif)
+  xmin <- round(xmin(tif), digits = 4)
+  xmax <- round(xmax(tif), digits = 4)
+  ymin <- round(ymin(tif), digits = 4)
+  ymax <- round(ymax(tif), digits = 4)
+  info <- cbind(xmin, xmax, ymin, ymax, file)
+  file_index <- rbind(file_index, info)
+  print(file)
+}
+write_csv(file_index, "Bathymetry_Rasters/file_index_16.csv")
+
+csvs <- list.files("Bathymetry_Rasters", full.names = T, pattern = "csv")
+
+index_file <- data.frame()
+for(csv in csvs){
+  data <- read_csv(csv)
+  index_file <- rbind(index_file, data)
+}
+
+index_file <- index_file[!duplicated(index_file), ]
+write_csv(index_file, "Bathymetry_Rasters/index_file.csv")
+
+
+
+
+
+
+
+
+
+
 
 
