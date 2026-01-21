@@ -23,7 +23,7 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
     stac_search(collections = "landsat-c2-l2",
                 bbox = bbox,
                 datetime = paste(start_date, end_date, sep="/"),
-                limit = 1000) |>
+                limit = 2000) |>
     ext_query("eo:cloud_cover" < 50) |> #filter for cloud cover
     post_request() |>
     items_sign(sign_fn = sign_planetary_computer()) |>
@@ -110,7 +110,9 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 clean_data <- function(values){
   values <- na.omit(values)
-  #vals <- vals[2:3] # fix this
+  if(length(values) > 2){
+    values <- values[2:3]
+  }
   values$time <- paste0(values$time, "T00:00:00Z")
   values$site_id <- site
   values$depth <- 0
@@ -126,59 +128,35 @@ clean_data <- function(values){
 ################################################################################
 # set date of interest
 #start_date <- "2013-04-19T00:00:00Z" # start of LS8
-start_date <- "2025-12-01T00:00:00Z" # start of LS8
-end_date <- paste0(Sys.Date(), "T00:00:00Z")
-site <- "fcre"
+#start_date <- "2025-12-01T00:00:00Z" # start of LS8
+#end_date <- paste0(Sys.Date(), "T00:00:00Z")
+#site <- "fcre"
 # call functions
-data <- get_lst(bbox = get(paste0(site, "_bbox")),
-                bbox_utm = get(paste0(site, "_box_utm")), 
-                start_date, end_date)
-thermal_masked <- water_mask(data)
-vals <- get_vals(get(paste0(site, "_points")), thermal_masked)
-final <- clean_data(vals)
+#data <- get_lst(bbox = get(paste0(site, "_bbox")),
+                #bbox_utm = get(paste0(site, "_box_utm")), 
+                #start_date, end_date)
+#thermal_masked <- water_mask(data)
+#vals <- get_vals(get(paste0(site, "_points")), thermal_masked)
+#final <- clean_data(vals)
 
 # write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
 
 # plot
-ggplot() +
-  geom_stars(data = thermal_masked["thermal_C"], color = 'transparent') +
-  facet_wrap(~time) +
+#ggplot() +
+  #geom_stars(data = thermal_masked["thermal_C"], color = 'transparent') +
+  #facet_wrap(~time) +
   #annotate("point", x = 401500, y = 3284600, color = 'red') +
-  theme_classic() +
-  scale_fill_viridis(na.value = 'transparent') +
-  labs(fill = "Temperature (C)")
+  #theme_classic() +
+  #scale_fill_viridis(na.value = 'transparent') +
+  #labs(fill = "Temperature (C)")
   
 
 
 # may need to bind data
-files <- list.files('targets/ccre', full.names = T)
-files <- files[2:9]
-alldata <- data.frame()
-for(file in files){
-  data <- read_csv(file)
-  alldata <- rbind(alldata, data)
-}
-write_csv(alldata, 'targets/ccre/ccre-targets-rs.csv')
-
-
-bvr_qual <- read_csv('targets/bvre/bvre-waterquality_2020_2024.csv')
-bvr_qual <- read_csv('targets/ccre/ccre-waterquality_2021_2024.csv')
-
-
-bvr_qual_cleaned <- bvr_qual[3:16] |>
-  pivot_longer(!DateTime)
-bvr_qual_cleaned <- bvr_qual_cleaned |>
-  mutate(depth = as.numeric(gsub("[^0-9.]", "", bvr_qual_cleaned$name))) |>
-  mutate(date = as.Date(bvr_qual_cleaned$DateTime)) |>
-  select(!c(name, DateTime))
-bvr_qual_cleaned <- bvr_qual_cleaned |>
-  group_by(date, depth) |>
-  summarize(value_avg = mean(value, na.rm = T))
-bvr_qual_cleaned <- na.omit(bvr_qual_cleaned)
-
-bvr_qual_cleaned$date <- paste0(bvr_qual_cleaned$date, "T00:00:00Z")
-colnames(bvr_qual_cleaned) <- c("datetime", "depth", "observation")
-bvr_qual_cleaned$site_id <- "bvre"  
-bvr_qual_cleaned$variable <- "temperature"
-write_csv(bvr_qual_cleaned, 'targets/ccre/ccre-targets-insitu.csv')
-write_csv(bvr_qual_cleaned, 'targets/bvre/bvre-targets-insitu.csv')
+#files <- list.files('targets/ccre', full.names = T)
+#files <- files[2:9]
+#alldata <- data.frame()
+#for(file in files){
+  #data <- read_csv(file)
+  #alldata <- rbind(alldata, data)}
+#write_csv(alldata, 'targets/ccre/ccre-targets-rs.csv')

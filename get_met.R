@@ -7,8 +7,30 @@ pacman::p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
 ################################################################################
 # Use Python env
 ################################################################################
-reticulate::use_virtualenv("~/Desktop/postdoc/.venv/", required = TRUE)
-reticulate::py_config()
+#reticulate::use_virtualenv("~/Desktop/postdoc/.venv/", required = TRUE)
+#reticulate::py_config()
+
+
+# try reproducibly
+#
+venv_path <- file.path(getwd(), ".venv")
+if (!dir.exists(venv_path)) {
+  virtualenv_create(venv_path)
+  virtualenv_install(
+    venv_path,
+    packages = c(
+      "xarray",
+      "zarr",
+      "certifi",
+      "numpy",
+      "fsspec",
+      "requests",
+      "aiohttp"
+    )
+  )
+}
+use_virtualenv(venv_path, required = TRUE)
+#####
 
 # python libraries
 certifi <- import("certifi")
@@ -17,6 +39,7 @@ xr <- import("xarray")
 builtins <- import("builtins", convert = FALSE)
 # make sure http can be accessed
 os$environ["SSL_CERT_FILE"] <- certifi$where()
+
 
 # open the zarr from dynamical.org
 ds <- xr$open_zarr(
@@ -108,8 +131,8 @@ get_temp_gefs <- function(site_id, start_time, lead_time = TRUE) {
 }
 
 # stage 2 function
-start_date <- as.Date("2020-10-01")
-end_date <- as.Date("2021-01-01")
+#start_date <- as.Date("2020-10-01")
+#end_date <- as.Date("2021-01-01")
 get_stage_2 <- function(start_date, end_date, site){
   # get date sequence
   dates <- seq(as.Date(start_date), 
@@ -144,7 +167,6 @@ get_stage_2 <- function(start_date, end_date, site){
 }
 
 # stage 3 function
-start_date <- ("2020-10-01")
 get_stage_3 <- function(start_date, site){
   # get date sequence
   dates <- seq(as.POSIXct(as.Date(start_date) - (31)), 
@@ -154,7 +176,7 @@ get_stage_3 <- function(start_date, site){
   stage3 <- data.frame()
   # for each date, get met data and bind together
   for(time in dates){
-    print(as.POSIXct(time))
+    #print(as.POSIXct(time))
     metdata <- get_temp_gefs(site_id = site, 
                              start_time = as.character(as.POSIXct(time)),
                              lead_time = 0)
@@ -177,4 +199,4 @@ get_stage_3 <- function(start_date, site){
   print("Stage 3 data downloaded!")
 }
 
-get_stage_3("2020-10-01", 'fcre')
+#get_stage_3("2020-10-01", 'fcre')

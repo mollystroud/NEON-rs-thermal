@@ -9,8 +9,8 @@
 # just change filter variable
 lakeinfo <- read_csv("LAGOS_lake_information.csv")
 mylake <- lakeinfo %>%
-  filter(lake_namegnis == "Falling Creek Reservoir")
-
+  filter(str_detect(lake_namegnis, 'Sunapee'))
+# SELECT YOUR LAKE OF INTEREST!
 
 #lagos <- read_csv("LAGOS_US_LANDSAT_matchups.csv")
 
