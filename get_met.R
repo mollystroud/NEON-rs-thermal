@@ -67,11 +67,11 @@ vars <- c(
 )
 
 # function: get met data from dynamical.org
-get_temp_gefs <- function(site_id, start_time, lead_time = TRUE) {
-  lat_min = get(paste0(site_id, '_bbox'))[[2]]
-  lat_max = get(paste0(site_id, '_bbox'))[[4]]
-  lon_min = get(paste0(site_id, '_bbox'))[[1]]
-  lon_max = get(paste0(site_id, '_bbox'))[[3]]
+get_temp_gefs <- function(site_id, start_time, bbox, lead_time = TRUE) {
+  lat_min = bbox[[2]]
+  lat_max = bbox[[4]]
+  lon_min = bbox[[1]]
+  lon_max = bbox[[3]]
   mean_lat <- mean(c(lat_min, lat_max))
   mean_lon <- mean(c(lon_min, lon_max))
   temp <- ds[r_to_py(vars)]$sel(
@@ -131,9 +131,7 @@ get_temp_gefs <- function(site_id, start_time, lead_time = TRUE) {
 }
 
 # stage 2 function
-#start_date <- as.Date("2020-10-01")
-#end_date <- as.Date("2021-01-01")
-get_stage_2 <- function(start_date, end_date, site){
+get_stage_2 <- function(start_date, end_date, site, bbox){
   # get date sequence
   dates <- seq(as.Date(start_date), 
                as.Date(end_date), 
@@ -142,9 +140,10 @@ get_stage_2 <- function(start_date, end_date, site){
   stage2 <- data.frame()
   # for each date, get met data and bind together
   for(date in dates){
-    print(as.Date(date))
+    message("Downloading stage 2 met data for ", as.Date(date))
     metdata <- get_temp_gefs(site_id = site, 
-                             start_time = as.character(as.Date(date))) # try as character
+                             start_time = as.character(as.Date(date)),
+                             bbox = bbox) # try as character
     metdata$reference_datetime <- as.Date(date)
     stage2 <- rbind(stage2, metdata)
   }
@@ -155,19 +154,51 @@ get_stage_2 <- function(start_date, end_date, site){
       dir <- file.path(
         "drivers/met/test/stage2",
         paste0("reference_datetime=", .y$reference_datetime),
-        paste0("site_id=", .y$site_id)
-      )
+        paste0("site_id=", .y$site_id))
       dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-      arrow::write_parquet(
-        .x,
-        file.path(dir, "part-0.parquet")
-      )
+      arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
     })
-  print("Stage 2 data downloaded!")
+  message("Stage 2 data downloaded!")
 }
 
+
+
+
+
+
+get_stage_2 <- function(start_date, end_date, site, bbox){
+  dates <- seq(as.Date(start_date),
+               as.Date(end_date),
+               by = "1 day")
+  for (date in dates) {
+    message("Downloading stage 2 met data for ", as.Date(date))
+    metdata <- get_temp_gefs(
+      site_id = site,
+      start_time = as.character(as.Date(date)),
+      bbox = bbox)
+    metdata$reference_datetime <- as.Date(date)
+    metdata |>
+      dplyr::group_by(reference_datetime, site_id) |>
+      dplyr::group_walk(~ {
+        
+        dir <- file.path(
+          "drivers/met/test/stage2",
+          paste0("reference_datetime=", .y$reference_datetime),
+          paste0("site_id=", .y$site_id))
+        dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+        arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
+      })
+  }
+  
+  message("Stage 2 data downloaded!")
+}
+
+
+
+
+
 # stage 3 function
-get_stage_3 <- function(start_date, site){
+get_stage_3 <- function(start_date, site, bbox){
   # get date sequence
   dates <- seq(as.POSIXct(as.Date(start_date) - (31)), 
                as.POSIXct(start_date), 
@@ -176,9 +207,10 @@ get_stage_3 <- function(start_date, site){
   stage3 <- data.frame()
   # for each date, get met data and bind together
   for(time in dates){
-    #print(as.POSIXct(time))
+    message("Downloading stage 3 met data for ", (as.POSIXct(time)))
     metdata <- get_temp_gefs(site_id = site, 
                              start_time = as.character(as.POSIXct(time)),
+                             bbox = bbox,
                              lead_time = 0)
     stage3 <- rbind(stage3, metdata)
   }
@@ -188,15 +220,11 @@ get_stage_3 <- function(start_date, site){
     group_walk(~ {
       dir <- file.path(
         "drivers/met/test/stage3",
-        paste0("site_id=", .y$site_id)
-      )
+        paste0("site_id=", .y$site_id))
       dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-      arrow::write_parquet(
-        .x,
-        file.path(dir, "part-0.parquet")
-      )
+      arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
     })
-  print("Stage 3 data downloaded!")
+  message("Stage 3 data downloaded!")
 }
 
 #get_stage_3("2020-10-01", 'fcre')

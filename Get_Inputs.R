@@ -22,27 +22,31 @@
 # INPUTS
 ################################################################################
 
-# EXAMPLE: PRLA
-site <- "PRPO"
+# a four letter site name
+# EXAMPLE: PRPO
+site <- "SUGG"
 # specify bounding box
-bbox <- c(xmin = -99.2559, 
-               ymin = 47.1274, 
-               xmax = -99.2501, 
-               ymax = 47.1317)
+bbox <- c(xmin = -82.0214,
+          ymin = 29.6843,
+          xmax = -82.0142,
+          ymax = 29.6912)
 
 # check your UTM zone: https://mangomap.com/robertyoung/maps/69585/what-utm-zone-am-i-in-#
 # get your EPSG: https://epsg.io/
-EPSG <- 32614
+EPSG <- 32617
 box_utm <- sf::st_bbox(
   sf::st_transform(sf::st_as_sfc(sf::st_bbox(bbox,crs = "EPSG:4326")), paste0("EPSG:", EPSG)))
 
 # representative point(s) of water bodies
-points <- data.frame(x = c(480800), y = c(5219650)) # CHANGE THIS
-points <- sf::st_as_sf(
-  points,
-  coords = c("x", "y"),
-  crs = sf::st_crs(box_utm)
-)
+points_df <- data.frame(lon = c(-82.018), lat = c(29.688))
+points <- st_as_sf(x = points_df,
+                   coords = c("lon", "lat"),
+                   crs = 4326)
+points <- sf::st_transform(points, crs = EPSG)
+
+
+
+
 
 # dates of interest 
 # START DATE MUST BE AFTER 2020-10-01
@@ -82,22 +86,19 @@ write_csv(output, paste0('targets/', site, '/', site, '-targets-rs-test.csv'))
 ################################################################################
 source("get_met.R")
 # download stage 2 
-get_stage_2(as.Date(start_date), as.Date(end_date), site)
-data <- arrow::read_parquet('/Users/mollystroud/Desktop/postdoc/flare-rs-thermal/drivers/met/test/stage2/reference_datetime=2025-07-04/site_id=PRPO/part-0.parquet')
-ggplot(data[data$variable == "air_temperature",], aes(x = datetime, 
-                                                      y = prediction, 
-                                                      group = parameter,
-                                                      color = parameter)) +
-  geom_line()
-
+get_stage_2(start_date, end_date, site, bbox)
 # download stage 3
+get_stage_3(start_date, site, bbox)
 
 ################################################################################
 # 3. Get bathymetric data (OPTIONAL!)
-# If you already have existing bathymetry, skip to line XXX
+# If you already have existing bathymetry, skip to line 98
 ################################################################################
-
-
+# get bathymetry from GLOBathy
+source("get_bathy.R")
+bathy <- find_matches(bbox)
+plot(bathy)
+get_ha(bathy, points)
 
 ################################################################################
 # 4. Get Kw factor
