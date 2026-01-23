@@ -92,7 +92,7 @@ get_stage_3(start_date, site, bbox)
 
 ################################################################################
 # 3. Get bathymetric data (OPTIONAL!)
-# If you already have existing bathymetry, skip to line 98
+# If you already have existing bathymetry, skip to line 101
 ################################################################################
 # get bathymetry from GLOBathy
 source("get_bathy.R")
@@ -102,6 +102,8 @@ get_ha(bathy, points)
 
 ################################################################################
 # 4. Get Kw factor
+# If your lake of interest is in the US, use the function get_kw_US
+# If your lake of interest is outside the US, use the function get_kw_global
 ################################################################################
 
 
