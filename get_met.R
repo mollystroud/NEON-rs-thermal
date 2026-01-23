@@ -1,18 +1,13 @@
 ################################################################################
 # Code started by Molly Stroud on 12/16/25
 # Download data from dynamical.org and put into correct formatting for FLARE
+# https://dynamical.org/catalog/noaa-gefs-forecast-35-day/
 ################################################################################
 pacman::p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
 
 ################################################################################
 # Use Python env
 ################################################################################
-#reticulate::use_virtualenv("~/Desktop/postdoc/.venv/", required = TRUE)
-#reticulate::py_config()
-
-
-# try reproducibly
-#
 venv_path <- file.path(getwd(), ".venv")
 if (!dir.exists(venv_path)) {
   virtualenv_create(venv_path)
@@ -30,7 +25,6 @@ if (!dir.exists(venv_path)) {
   )
 }
 use_virtualenv(venv_path, required = TRUE)
-#####
 
 # python libraries
 certifi <- import("certifi")
@@ -51,8 +45,6 @@ ds <- xr$open_zarr(
 )
 #py_to_r(ds$init_time$values)
 
-# use already defined bboxes
-source("NEON_bboxes.R")
 source("to_hourly.R")
 # variables of interest
 vars <- c(
@@ -132,41 +124,6 @@ get_temp_gefs <- function(site_id, start_time, bbox, lead_time = TRUE) {
 
 # stage 2 function
 get_stage_2 <- function(start_date, end_date, site, bbox){
-  # get date sequence
-  dates <- seq(as.Date(start_date), 
-               as.Date(end_date), 
-               by = "1 day")
-  # empty df
-  stage2 <- data.frame()
-  # for each date, get met data and bind together
-  for(date in dates){
-    message("Downloading stage 2 met data for ", as.Date(date))
-    metdata <- get_temp_gefs(site_id = site, 
-                             start_time = as.character(as.Date(date)),
-                             bbox = bbox) # try as character
-    metdata$reference_datetime <- as.Date(date)
-    stage2 <- rbind(stage2, metdata)
-  }
-  # save out (can't use arrow here due to earlier loading of python)
-  stage2 |>
-    group_by(reference_datetime, site_id) |>
-    group_walk(~ {
-      dir <- file.path(
-        "drivers/met/test/stage2",
-        paste0("reference_datetime=", .y$reference_datetime),
-        paste0("site_id=", .y$site_id))
-      dir.create(dir, recursive = TRUE, showWarnings = FALSE)
-      arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
-    })
-  message("Stage 2 data downloaded!")
-}
-
-
-
-
-
-
-get_stage_2 <- function(start_date, end_date, site, bbox){
   dates <- seq(as.Date(start_date),
                as.Date(end_date),
                by = "1 day")
@@ -180,7 +137,6 @@ get_stage_2 <- function(start_date, end_date, site, bbox){
     metdata |>
       dplyr::group_by(reference_datetime, site_id) |>
       dplyr::group_walk(~ {
-        
         dir <- file.path(
           "drivers/met/test/stage2",
           paste0("reference_datetime=", .y$reference_datetime),
@@ -192,10 +148,6 @@ get_stage_2 <- function(start_date, end_date, site, bbox){
   
   message("Stage 2 data downloaded!")
 }
-
-
-
-
 
 # stage 3 function
 get_stage_3 <- function(start_date, site, bbox){
@@ -226,5 +178,3 @@ get_stage_3 <- function(start_date, site, bbox){
     })
   message("Stage 3 data downloaded!")
 }
-
-#get_stage_3("2020-10-01", 'fcre')

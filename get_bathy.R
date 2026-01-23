@@ -73,4 +73,3 @@ get_ha <- function(bathy_raster, points){
 }
 
 
-
