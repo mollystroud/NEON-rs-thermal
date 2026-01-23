@@ -76,4 +76,101 @@ ggplot() +
 ################################################################################
 # Sunapee
 ################################################################################
+wq_sunapee <- read_csv("/Users/mollystroud/Desktop/postdoc/flare-rs-thermal/targets/sunp/sunp-targets-insitu.csv")
+
+wq_sunapee_cleaned <- wq_sunapee |>
+  dplyr::select(-c(variable, site_id))
+wq_sunapee_cleaned$year <- format(wq_sunapee_cleaned$datetime, "%y")
+wq_sunapee_cleaned$doy <- yday(wq_sunapee_cleaned$datetime)
+
+# get daily average over the years
+avg_sedtemp_sunp <- wq_sunapee_cleaned |>
+  dplyr::group_by(doy, depth) |>
+  dplyr::summarize(Temp = mean(observation, na.rm = T))
+
+
+
+# met
+sunp_files <- list.files(path = "/Users/mollystroud/Desktop/postdoc/sunapee/edi.234.7", 
+                         pattern = '.csv', full.names = T)
+sunp_met <- data.frame()
+for(file in sunp_files[-19]){
+  csv <- read_csv(file)
+  csv <- csv |>
+    dplyr::select(datetime, airTemperature_degC)
+  sunp_met <- rbind(sunp_met, csv)
+}
+
+sunp_met_cleaned <- sunp_met |>
+  dplyr::mutate(datetime = as.Date(datetime)) |>
+  dplyr::group_by(datetime) |>
+  dplyr::summarize(Temp = mean(airTemperature_degC))
+
+sunp_met_cleaned$doy <- yday(sunp_met_cleaned$datetime)
+
+# get daily average over the years
+avg_airtemp_sunp <- sunp_met_cleaned |>
+  dplyr::group_by(doy) |>
+  dplyr::summarize(Temp = mean(Temp, na.rm = T))
+
+
+
+
+ggplot() +
+  geom_line(data = avg_airtemp_sunp, aes(x = doy, y = Temp), color = 'darkblue') +
+  geom_line(data = avg_sedtemp_sunp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Sunapee", x = "Day of Year", color = "Depth")
+
+
+################################################################################
+# Alex
+################################################################################
+alex_watertemp_df <- read_csv('https://amnh1.osn.mghpcc.org/bio230121-bucket01/flare/targets/ALEX/ALEX-targets-insitu.csv') |> 
+  filter(variable == 'temperature')
+
+temp_alex <- alex_watertemp_df |>
+  dplyr::select(-c(variable, site_id))
+temp_alex$doy <- yday(temp_alex$datetime)
+
+# get daily average over the years
+avg_watertemp_alex <- temp_alex |>
+  dplyr::group_by(doy) |>
+  dplyr::summarize(Temp = mean(observation, na.rm = T))
+
+
+# met data
+devtools::install_github("FLARE-forecast/ropenmeteo", force = T)
+library(ropenmeteo)
+
+alex_era5_download <- get_historical_weather(latitude = -35.435564,
+                                             longitude = 139.170332,
+                                             site_id = NULL,
+                                             start_date = "2020-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+
+alex_cleaned <- alex_era5_download |>
+  dplyr::select(-c(site_id, model_id, variable, unit)) |>
+  dplyr::mutate(datetime = as.Date(datetime)) |>
+  dplyr::group_by(datetime) |>
+  dplyr::summarize(Temp = mean(prediction))
+
+alex_cleaned$year <- format(alex_cleaned$datetime, "%y")
+alex_cleaned$doy <- yday(alex_cleaned$datetime)
+
+# get daily average over the years
+avg_airtemp_alex <- alex_cleaned |>
+  dplyr::group_by(doy) |>
+  dplyr::summarize(Temp = mean(Temp, na.rm = T))
+
+
+
+ggplot() +
+  geom_line(data = avg_airtemp_alex, aes(x = doy, y = Temp, color = 'Air Temp')) +
+  geom_line(data = avg_watertemp_alex, aes(x = doy, y = Temp, color = '0.5m')) +
+  theme_classic() +
+  scale_color_manual(labels = c("Air Temp", "0.5m"), values = c("darkblue", "green")) +
+  labs(title = "Lake Alex", x = "Day of Year", color = element_blank())
+
 
