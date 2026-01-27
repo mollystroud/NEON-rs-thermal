@@ -17,7 +17,6 @@
 # 2. The coordinates of a representative point(s) over your lake or reservoir of interest
 # 3. Your start and end dates in the following format: YYYY-DD-MM
 
-
 ################################################################################
 # INPUTS
 ################################################################################
@@ -43,9 +42,6 @@ points <- st_as_sf(x = points_df,
                    coords = c("lon", "lat"),
                    crs = 4326)
 points <- sf::st_transform(points, crs = EPSG)
-
-
-
 
 
 # dates of interest 

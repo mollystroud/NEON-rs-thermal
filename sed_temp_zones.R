@@ -1,5 +1,6 @@
 # exploring sediment relationship at FCR, sunapee, lake alex
 ################################################################################
+pacman::p_load(ggplot2, ggrepel)
 # FCR
 ################################################################################
 # get amplitude and doy of air temp each year
@@ -65,12 +66,20 @@ avg_sedtemp <- water_temp_cleaned |>
   dplyr::summarize(Temp = mean(Temp, na.rm = T))
 
 # compare!
-ggplot() +
+fcre <- ggplot() +
   geom_line(data = avg_airtemp, aes(x = doy, y = Temp), color = 'darkblue') +
   geom_line(data = avg_sedtemp, aes(x = doy, y = Temp, color = Depth)) +
   theme_classic() +
+  geom_label_repel(data = avg_sedtemp |> group_by(Depth) |> filter(Temp == max(Temp, na.rm = TRUE)),
+             aes(x = doy, y = Temp, 
+                 label = paste0("   peak doy = ", doy, "\nmax temp = ", round(Temp, 2))),
+             vjust = 0.5, hjust = -0.2, alpha = 0.7) +
   labs(title = "FCR", x = "Day of Year")
+fcre
 
+
+mean(avg_airtemp$Temp, na.rm = T)
+mean(avg_sedtemp[avg_sedtemp$Depth > 5,]$Temp, na.rm = T)
 
 
 ################################################################################
@@ -115,13 +124,20 @@ avg_airtemp_sunp <- sunp_met_cleaned |>
 
 
 
+mean(avg_airtemp_sunp$Temp, na.rm = T)
+mean(avg_sedtemp_sunp[avg_sedtemp_sunp$depth > 15,]$Temp, na.rm = T)
 
-ggplot() +
+
+sunp <- ggplot() +
   geom_line(data = avg_airtemp_sunp, aes(x = doy, y = Temp), color = 'darkblue') +
   geom_line(data = avg_sedtemp_sunp, aes(x = doy, y = Temp, color = as.factor(depth))) +
   theme_classic() +
+  geom_label(data = avg_sedtemp_sunp |> group_by(depth) |> filter(Temp == max(Temp, na.rm = TRUE)),
+             aes(x = doy, y = Temp, 
+                 label = paste0("   peak doy = ", doy, "\nmax temp = ", round(Temp, 2))),
+             vjust = 0.5, hjust = -0.2, alpha = 0.7) +
   labs(title = "Sunapee", x = "Day of Year", color = "Depth")
-
+sunp
 
 ################################################################################
 # Alex
@@ -165,12 +181,141 @@ avg_airtemp_alex <- alex_cleaned |>
   dplyr::summarize(Temp = mean(Temp, na.rm = T))
 
 
-
-ggplot() +
+alex <- ggplot() +
   geom_line(data = avg_airtemp_alex, aes(x = doy, y = Temp, color = 'Air Temp')) +
   geom_line(data = avg_watertemp_alex, aes(x = doy, y = Temp, color = '0.5m')) +
+  geom_label(data = avg_watertemp_alex %>% filter(Temp == max(Temp, na.rm = TRUE)),
+            aes(x = doy, y = Temp, 
+                label = paste0("   peak doy = ", doy, "\nmax temp = ", round(Temp, 2))),
+            vjust = 0.5, hjust = -0.2, alpha = 0.7) +
   theme_classic() +
   scale_color_manual(labels = c("Air Temp", "0.5m"), values = c("darkblue", "green")) +
   labs(title = "Lake Alex", x = "Day of Year", color = element_blank())
+alex
 
+################################################################################
+# NEON
+################################################################################
+neon_temps <- read_csv("/Users/mollystroud/Desktop/postdoc/flare-rs-thermal/NEON_insitu_columntemp.csv")
+neon_temps$doy <- yday(neon_temps$datetime)
 
+# functions
+watertemp_clean <- function(temps, site){
+  avg_temp <- temps |>
+    dplyr::filter(site_id == site) |>
+    dplyr::group_by(doy, depth) |>
+    dplyr::summarize(Temp = mean(observation, na.rm = T))
+}
+
+airtemp_clean <- function(airtemps){
+  temps <- airtemps |>
+    dplyr::select(-c(site_id, model_id, variable, unit)) |>
+    dplyr::mutate(datetime = as.Date(datetime)) |>
+    dplyr::group_by(datetime) |>
+    dplyr::summarize(Temp = mean(prediction))
+  temps$doy <- yday(temps$datetime)
+  # get daily average over the years
+  avg_temps <- temps |>
+    dplyr::group_by(doy) |>
+    dplyr::summarize(Temp = mean(Temp, na.rm = T))
+}
+
+# SUGG
+sugg_watertemp <- watertemp_clean(neon_temps, "SUGG")
+sugg_era5_download <- get_historical_weather(latitude = 29.6880,
+                                             longitude = -82.0179,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+sugg_airtemp <- airtemp_clean(sugg_era5_download)
+sugg_plot <- ggplot() +
+  geom_line(data = sugg_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = sugg_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Lake Suggs", x = "Day of Year", color = element_blank())
+sugg_plot
+
+# BARC
+barc_watertemp <- watertemp_clean(neon_temps, "BARC")
+barc_era5_download <- get_historical_weather(latitude = 29.6761,
+                                             longitude = -82.0086,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+barc_airtemp <- airtemp_clean(barc_era5_download)
+barc_plot <- ggplot() +
+  geom_line(data = barc_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = barc_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Lake Barco", x = "Day of Year", color = element_blank())
+barc_plot
+
+# CRAM
+cram_watertemp <- watertemp_clean(neon_temps, "CRAM")
+cram_era5_download <- get_historical_weather(latitude = 46.2097,
+                                             longitude = -89.4730,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+cram_airtemp <- airtemp_clean(cram_era5_download)
+cram_plot <- ggplot() +
+  geom_line(data = cram_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = cram_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Crampton Lake", x = "Day of Year", color = element_blank())
+cram_plot
+
+# PRLA
+prla_watertemp <- watertemp_clean(neon_temps, "PRLA")
+prla_era5_download <- get_historical_weather(latitude = 47.1598,
+                                             longitude = -99.1184,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+prla_airtemp <- airtemp_clean(prla_era5_download)
+prla_plot <- ggplot() +
+  geom_line(data = prla_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = prla_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Prairie Lake", x = "Day of Year", color = element_blank())
+prla_plot
+
+# LIRO
+liro_watertemp <- watertemp_clean(neon_temps, "LIRO")
+liro_era5_download <- get_historical_weather(latitude = 45.9958,
+                                             longitude = -89.7020,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+liro_airtemp <- airtemp_clean(liro_era5_download)
+liro_plot <- ggplot() +
+  geom_line(data = liro_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = liro_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Little Rock Lake", x = "Day of Year", color = element_blank())
+liro_plot
+
+# PRPO
+prpo_watertemp <- watertemp_clean(neon_temps, "PRPO")
+prpo_era5_download <- get_historical_weather(latitude = 47.1301,
+                                             longitude = -99.2527,
+                                             site_id = NULL,
+                                             start_date = "2017-06-01",
+                                             end_date = "2025-06-01",
+                                             variables = c("temperature_2m"))
+prpo_airtemp <- airtemp_clean(prpo_era5_download)
+prpo_plot <- ggplot() +
+  geom_line(data = prpo_airtemp, aes(x = doy, y = Temp,), color = 'darkblue') +
+  geom_line(data = prpo_watertemp, aes(x = doy, y = Temp, color = as.factor(depth))) +
+  theme_classic() +
+  labs(title = "Prairie Pothole", x = "Day of Year", color = element_blank())
+prpo_plot
+
+library(patchwork)
+(sugg_plot + barc_plot + cram_plot + prla_plot + liro_plot + prpo_plot) + 
+  plot_layout(ncol = 3, axis_titles = "collect")

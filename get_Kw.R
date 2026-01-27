@@ -12,8 +12,6 @@ mylake <- lakeinfo %>%
   filter(str_detect(lake_namegnis, 'Sunapee'))
 # SELECT YOUR LAKE OF INTEREST!
 
-#lagos <- read_csv("LAGOS_US_LANDSAT_matchups.csv")
-
 lagos_qual <- read_csv("LAGOS_US_LANDSAT_Predictions_v1_QAQC.csv")
 mylake_secchi <- lagos_qual %>%
   filter(QAQC_recommend == TRUE) %>%
