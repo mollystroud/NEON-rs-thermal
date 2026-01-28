@@ -21,7 +21,7 @@ pacman::p_load(tidyverse, sf, raster, terra, dplyr, elevatr, marmap, rLakeAnalyz
 #}
 #write_csv(file_index, "Bathymetry_Rasters/index_file.csv")
 
-index <- read_csv("index_file.csv")
+index <- read_csv("https://amnh1.osn.mghpcc.org/bio230121-bucket01/GLOBathy/GLOBathy_index.csv")
 find_matches <- function(bbox){
   mean_x <- (bbox["xmin"] + bbox["xmax"]) / 2
   mean_y <- (bbox["ymin"] + bbox["ymax"]) / 2
@@ -64,9 +64,8 @@ get_ha <- function(bathy_raster, points){
   area_layers$depths <- area_layers$depths*-1 #make it so that surface (0m) is at top
   # add actual elevation
   elev <- elevatr::get_elev_point(points)
-  print(elev$elevation)
+  #print(elev$elevation)
   area_layers$depths <- area_layers$depths + elev$elevation
-  
   plot(area_layers$Area.at.z, area_layers$depths, type = 'l', 
        xlab = 'Area at Depth (m2)', ylab = 'Depth (m)', main = 'GLOBathy')
   
