@@ -3,7 +3,7 @@
 ################################################################################
 # load in packages
 pacman::p_load('rstac', 'terra', 'stars', 'ggplot2', 'tidyterra', 'viridis', 
-       'EBImage', 'gdalcubes', 'tmap', 'dplyr', 'tidyverse', 'sf')
+       'gdalcubes', 'tmap', 'dplyr', 'tidyverse', 'sf')
 ################################################################################
 ## the below code is designed to pull landsat thermal imagery over a specified 
 # area and estimate temperature over the reservoir
@@ -125,7 +125,6 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # function to clean up data for input to FLARE
 ################################################################################
-values <- thermal_vals
 clean_data <- function(values){
   values <- na.omit(values)
   if(length(values) > 2){

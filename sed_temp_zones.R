@@ -1,9 +1,9 @@
 # exploring sediment relationship at FCR, sunapee, lake alex
 ################################################################################
-pacman::p_load(ggplot2, ggrepel)
-# FCR
+pacman::p_load(ggplot2, ggrepel, patchwork)
+
 ################################################################################
-# get amplitude and doy of air temp each year
+# FCR
 ################################################################################
 meteo <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/389/10/d3f3d2fa40c41fdcd505ae49b2fdcf8b")
 
@@ -31,10 +31,6 @@ avg_airtemp <- meteo_cleaned |>
   dplyr::group_by(doy) |>
   dplyr::summarize(Temp = mean(AirTemp_C_Average, na.rm = T))
 
-
-################################################################################
-# get amplitude and doy of sed temp each year
-################################################################################
 water_temp <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/271/10/814580ebec0385c66f0a0a97c38e9136")
 
 water_temp_cleaned <- water_temp |>
@@ -70,16 +66,43 @@ fcre <- ggplot() +
   geom_line(data = avg_airtemp, aes(x = doy, y = Temp), color = 'darkblue') +
   geom_line(data = avg_sedtemp, aes(x = doy, y = Temp, color = Depth)) +
   theme_classic() +
-  geom_label_repel(data = avg_sedtemp |> group_by(Depth) |> filter(Temp == max(Temp, na.rm = TRUE)),
-             aes(x = doy, y = Temp, 
-                 label = paste0("   peak doy = ", doy, "\nmax temp = ", round(Temp, 2))),
-             vjust = 0.5, hjust = -0.2, alpha = 0.7) +
+  #geom_label_repel(data = avg_sedtemp |> group_by(Depth) |> filter(Temp == max(Temp, na.rm = TRUE)),
+             #aes(x = doy, y = Temp, label = paste0("   peak doy = ", doy, "\nmax temp = ", round(Temp, 2))),
+             #vjust = 0.5, hjust = -0.2, alpha = 0.7) +
   labs(title = "FCR", x = "Day of Year")
 fcre
 
 
 mean(avg_airtemp$Temp, na.rm = T)
 mean(avg_sedtemp[avg_sedtemp$Depth > 5,]$Temp, na.rm = T)
+airtemp_amp <- (max(avg_airtemp$Temp) - min(avg_airtemp$Temp)) / 2
+
+
+# estimate peak doy at depth
+airtemp_peakdoy <- which.max(avg_airtemp$Temp)
+# adding air temp peak doy to 2*depth and days of year/2pi (converting radians to days)
+watertemp_peakdoy <- airtemp_peakdoy + 2*8 + (365/(2*pi))
+
+(272 + 198) / 1.8
+
+airtemp_peakdoy + (2*1) + 1/8*(365/(2*pi))
+
+# estimate amplitude at depth (-8 is the depth of the lake, 8 is the sed depth)
+watertemp_amp <- airtemp_amp * exp(-9/8)
+
+
+(max(avg_sedtemp[avg_sedtemp$Depth > 7,]$Temp) - min(avg_sedtemp[avg_sedtemp$Depth > 7,]$Temp)) / 2
+#### OR PEAK IS NEAR SECOND MEAN 284
+mean_temp <- mean(avg_airtemp$Temp, na.rm = T)
+
+# smooth data
+avg_airtemp$smoothed <- stats::filter(
+  avg_airtemp$Temp,
+  rep(1/14, 14),   # 15-day moving average
+  sides = 2
+)
+mean_temp <- mean(avg_airtemp$smoothed, na.rm = T)
+crossings <- which(diff(avg_airtemp$smoothed > mean_temp) != 0)
 
 
 ################################################################################
@@ -96,8 +119,6 @@ wq_sunapee_cleaned$doy <- yday(wq_sunapee_cleaned$datetime)
 avg_sedtemp_sunp <- wq_sunapee_cleaned |>
   dplyr::group_by(doy, depth) |>
   dplyr::summarize(Temp = mean(observation, na.rm = T))
-
-
 
 # met
 sunp_files <- list.files(path = "/Users/mollystroud/Desktop/postdoc/sunapee/edi.234.7", 
@@ -193,6 +214,11 @@ alex <- ggplot() +
   labs(title = "Lake Alex", x = "Day of Year", color = element_blank())
 alex
 
+
+
+mean(avg_airtemp_alex$Temp, na.rm = T)
+mean(avg_watertemp_alex$Temp, na.rm = T)
+
 ################################################################################
 # NEON
 ################################################################################
@@ -236,6 +262,10 @@ sugg_plot <- ggplot() +
   labs(title = "Lake Suggs", x = "Day of Year", color = element_blank())
 sugg_plot
 
+
+mean(sugg_watertemp$Temp, na.rm = T)
+mean(sugg_airtemp$Temp, na.rm = T)
+
 # BARC
 barc_watertemp <- watertemp_clean(neon_temps, "BARC")
 barc_era5_download <- get_historical_weather(latitude = 29.6761,
@@ -251,6 +281,9 @@ barc_plot <- ggplot() +
   theme_classic() +
   labs(title = "Lake Barco", x = "Day of Year", color = element_blank())
 barc_plot
+
+mean(barc_watertemp$Temp, na.rm = T)
+mean(barc_airtemp$Temp, na.rm = T)
 
 # CRAM
 cram_watertemp <- watertemp_clean(neon_temps, "CRAM")
@@ -268,6 +301,23 @@ cram_plot <- ggplot() +
   labs(title = "Crampton Lake", x = "Day of Year", color = element_blank())
 cram_plot
 
+mean(cram_watertemp$Temp, na.rm = T)
+mean(cram_airtemp$Temp, na.rm = T)
+
+airtemp_amp_cram <- (max(cram_airtemp$Temp) - min(cram_airtemp$Temp)) / 2
+# estimate amplitude at depth (-10 is the depth of the lake, 10 is the sed depth)
+watertemp_amp_cram <- airtemp_amp_cram * exp(-1/10)^2 # not sure about ^2
+
+
+airtemp_amp_cram * 10^(-5/10) #
+
+
+185 + 2*10.3 + (365/(2*pi))
+
+(185 + 263) / 1.8
+
+
+
 # PRLA
 prla_watertemp <- watertemp_clean(neon_temps, "PRLA")
 prla_era5_download <- get_historical_weather(latitude = 47.1598,
@@ -283,6 +333,10 @@ prla_plot <- ggplot() +
   theme_classic() +
   labs(title = "Prairie Lake", x = "Day of Year", color = element_blank())
 prla_plot
+
+mean(prla_airtemp$Temp, na.rm = T)
+mean(prla_watertemp$Temp, na.rm = T)
+
 
 # LIRO
 liro_watertemp <- watertemp_clean(neon_temps, "LIRO")
@@ -300,6 +354,9 @@ liro_plot <- ggplot() +
   labs(title = "Little Rock Lake", x = "Day of Year", color = element_blank())
 liro_plot
 
+mean(liro_airtemp$Temp, na.rm = T)
+mean(liro_watertemp$Temp, na.rm = T)
+
 # PRPO
 prpo_watertemp <- watertemp_clean(neon_temps, "PRPO")
 prpo_era5_download <- get_historical_weather(latitude = 47.1301,
@@ -316,6 +373,19 @@ prpo_plot <- ggplot() +
   labs(title = "Prairie Pothole", x = "Day of Year", color = element_blank())
 prpo_plot
 
-library(patchwork)
+mean(prpo_airtemp$Temp, na.rm = T)
+mean(prpo_watertemp$Temp, na.rm = T)
+(max(prpo_airtemp$Temp) - min(prpo_airtemp$Temp)) / 2
+
+
+
+### PLOT
 (sugg_plot + barc_plot + cram_plot + prla_plot + liro_plot + prpo_plot) + 
   plot_layout(ncol = 3, axis_titles = "collect")
+
+
+
+
+
+
+

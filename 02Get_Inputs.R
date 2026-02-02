@@ -25,7 +25,7 @@ data <- get_lst(bbox,
         box_utm, 
         paste0(start_date, "T00:00:00Z"), 
         paste0(end_date, "T00:00:00Z"))
-# now mask out non-water pixels
+# mask out non-water pixels
 masked_data <- water_mask(data)
 # see what it looks like!
 ggplot() +
@@ -40,6 +40,7 @@ thermal_vals <- get_vals(points, masked_data)
 output <- clean_data(thermal_vals)
 # save out targets
 # create directory for targets file
+dir.create('targets/')
 dir.create(paste0('targets/', site, '/'))
 write_csv(output, paste0('targets/', site, '/', site, '-targets-rs.csv'))
 
@@ -64,7 +65,7 @@ get_stage_3(start_date, site, bbox)
 # get bathymetry from GLOBathy
 source("get_bathy.R")
 bathy <- find_matches(bbox)
-plot(bathy)
+plot(bathy) # check this is the correct lake
 get_ha(bathy, points)
 
 ################################################################################

@@ -14,12 +14,12 @@ pacman::p_load(sf)
 
 # a four letter site name
 # EXAMPLE: SUGG for Lake Suggs
-site <- "sres"
+site <- "mirr"
 # specify bounding box
-bbox <- c(xmin = -71.1222,
-          ymin = 42.4402,
-          xmax = -71.1085,
-          ymax = 42.4503)
+bbox <- c(xmin = -71.6967,
+          ymin = 43.9411,
+          xmax = -71.6887,
+          ymax = 43.9467)
 
 # input UTM zone (necessary for accessing remote sensing data)
 # check your UTM zone: https://mangomap.com/robertyoung/maps/69585/what-utm-zone-am-i-in-#
@@ -31,7 +31,7 @@ box_utm <- sf::st_bbox(
 # pick representative point(s) of lake
 # for example, if your lake is a perfect circle, a good point would be the
 # middle of the circle
-points_df <- data.frame(lon = c(-71.1165), lat = c(42.4448))
+points_df <- data.frame(lon = c(-71.6927), lat = c(43.9439))
 points <- st_as_sf(x = points_df,
                    coords = c("lon", "lat"),
                    crs = 4326)
