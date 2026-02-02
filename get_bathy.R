@@ -20,7 +20,7 @@ pacman::p_load(tidyverse, sf, raster, terra, dplyr, elevatr, marmap, rLakeAnalyz
   #print(file)
 #}
 #write_csv(file_index, "Bathymetry_Rasters/index_file.csv")
-
+message("Downloading GLOBathy index file")
 index <- read_csv("https://amnh1.osn.mghpcc.org/bio230121-bucket01/GLOBathy/GLOBathy_index.csv")
 find_matches <- function(bbox){
   mean_x <- (bbox["xmin"] + bbox["xmax"]) / 2

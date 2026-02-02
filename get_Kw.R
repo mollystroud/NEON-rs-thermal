@@ -20,14 +20,13 @@ get_kw_US <- function(bbox){
     }
   if(tolower(q) %in% c("Y", "y", "Yes", "yes")){
     message("Downloading LAGOS Secchi information. This may take a minute.")
+    #original lagos file (over 7GB)
    #### lagos_qual <- read_csv("https://pasta.lternet.edu/package/data/eml/edi/1427/1/3cb4f20440cbd7b8e828e4068d2ab734")
+    lagos_qual <- read_csv("LAGOS_US_LANDSAT_Predictions_AVERAGED.csv")
     mylake_secchi <- lagos_qual |>
-      filter(QAQC_recommend == TRUE) |>
-      filter(lagoslakeid == mylake$lagoslakeid) |>
-      select(SENSING_TIME, lagoslakeid, Secchi_predicted)
-    meansecchi <- mean(mylake_secchi$Secchi_predicted, na.rm = T)
-    message("Mean secchi for this lake is ", meansecchi)
-    Kw <- 1.7 / meansecchi
+      filter(lagoslakeid == mylake$lagoslakeid)
+    message("Mean secchi for this lake is ", mylake_secchi$mean_secchi)
+    Kw <- 1.7 / mylake_secchi$mean_secchi
     return(Kw)
   } else {message("Double check your coordinates. Your lake may not exist in the LAGOS database. You may also search the database by lake name, NHDID, and more.")}
 }

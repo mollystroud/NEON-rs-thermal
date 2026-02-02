@@ -9,10 +9,10 @@ pacman::p_load('rstac', 'terra', 'stars', 'ggplot2', 'tidyterra', 'viridis',
 # area and estimate temperature over the reservoir
 ################################################################################
 # get bboxes
-source("NEON_bboxes.R") # or, create your own bbox here
+#source("NEON_bboxes.R") # or, create your own bbox here
 
 # define stac url
-ls = stac ("https://planetarycomputer.microsoft.com/api/stac/v1")
+ls = stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
 ################################################################################
 # Function to create thermal stars object with specified dates and bbox
@@ -23,57 +23,62 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
     stac_search(collections = "landsat-c2-l2",
                 bbox = bbox,
                 datetime = paste(start_date, end_date, sep="/"),
-                limit = 2000) |>
+                limit = 1000) |>
     ext_query("eo:cloud_cover" < 50) |> #filter for cloud cover
     post_request() |>
     items_sign(sign_fn = sign_planetary_computer()) |>
     items_fetch()
-  items
-  # filter out non LS8/9
-  items$features <- Filter(
-    function(f) f$properties$platform %in% c("landsat-8", "landsat-9"),
-    items$features
-  )
-
-  # define the cube space
-  EPSG <- st_crs(bbox_utm)$epsg
-  cube <- cube_view(srs = paste0("EPSG:", EPSG),
-                    extent = list(t0 = start_date, 
-                                  t1 = end_date,
-                                  left = bbox_utm[1], 
-                                  right = bbox_utm[3],
-                                  top = bbox_utm[4], 
-                                  bottom = bbox_utm[2]),
-                    dx = 30, # 30 m resolution
-                    dy = 30, 
-                    dt = "P1D",
-                    aggregation = "median", 
-                    resampling = "average")
-  # create stac image collection
-  col <- stac_image_collection(items$features,
-                               asset_names = c("lwir11", "qa_pixel"),
-                               url_fun = identity)
-                               #url_fun = function(url) paste0("/vsicurl/", url))  # helps GDAL access
-  # make raster cube
-  data <- raster_cube(image_collection = col, 
-                      view = cube)
-  data <- rename_bands(data, lwir11 = "thermal", qa_pixel = "QA")
-  # make stars obj
-  ls_stars <- st_as_stars(data)
-  # remove empty dates
-  arr <- ls_stars[[1]] # extract raw array (x, y, time)
-  non_na_counts <- apply(arr, 3, function(slice) sum(!is.na(slice))) # count non-NA pixels for each time
-  valid_idx <- which(non_na_counts > 0) # indices of slices that have at least one real value
-  # build cleaned object by stacking only valid slices
-  slices <- lapply(valid_idx, function(i) ls_stars[,,, i, drop = FALSE])
-  clean_ls_stars <- do.call(c, c(slices, along = "time"))
-  return(clean_ls_stars)
+  if(length(items$features) == 0){
+    message("There are no cloud-free thermal images of this lake in the specified date range. Consider changing or expanding your date range.")
+    return( )
+  } else {
+    message("Downloading Landsat Thermal data")
+    # filter out non LS8/9
+    items$features <- Filter(
+      function(f) f$properties$platform %in% c("landsat-8", "landsat-9"),
+      items$features
+    )
+    
+    # define the cube space
+    EPSG <- st_crs(bbox_utm)$epsg
+    cube <- cube_view(srs = paste0("EPSG:", EPSG),
+                      extent = list(t0 = start_date, 
+                                    t1 = end_date,
+                                    left = bbox_utm[1], 
+                                    right = bbox_utm[3],
+                                    top = bbox_utm[4], 
+                                    bottom = bbox_utm[2]),
+                      dx = 30, # 30 m resolution
+                      dy = 30, 
+                      dt = "P1D",
+                      aggregation = "median", 
+                      resampling = "average")
+    # create stac image collection
+    col <- stac_image_collection(items$features,
+                                 asset_names = c("lwir11", "qa_pixel"),
+                                 url_fun = identity)
+    #url_fun = function(url) paste0("/vsicurl/", url))  # helps GDAL access
+    # make raster cube
+    data <- raster_cube(image_collection = col, 
+                        view = cube)
+    data <- rename_bands(data, lwir11 = "thermal", qa_pixel = "QA")
+    # make stars obj
+    ls_stars <- st_as_stars(data)
+    # remove empty dates
+    arr <- ls_stars[[1]] # extract raw array (x, y, time)
+    non_na_counts <- apply(arr, 3, function(slice) sum(!is.na(slice))) # count non-NA pixels for each time
+    valid_idx <- which(non_na_counts > 0) # indices of slices that have at least one real value
+    # build cleaned object by stacking only valid slices
+    slices <- lapply(valid_idx, function(i) ls_stars[,,, i, drop = FALSE])
+    clean_ls_stars <- do.call(c, c(slices, along = "time"))
+    return(clean_ls_stars)
+    }
 }
 
 ################################################################################
 # function to get only water pixels and correct temp
 ################################################################################
-thermal_data <- data
+#thermal_data <- data
 water_mask <- function(thermal_data) {
   # make array
   thermal_arr <- thermal_data$thermal
@@ -87,7 +92,12 @@ water_mask <- function(thermal_data) {
   # make stars object again
   thermal_masked_vec <- thermal_data["thermal"]   # copy dimensions
   thermal_masked_vec$thermal_C <- thermal_C
-  return(thermal_masked_vec)
+  
+  if(all(is.na(thermal_masked_vec$thermal_C))){
+    message("There are no cloud-free thermal images of this lake in the specified date range. Consider changing or expanding your date range.")
+    return( )
+  } else {
+    return(thermal_masked_vec)}
 }
 ################################################################################
 # function to extract values and write out csv
@@ -95,6 +105,13 @@ water_mask <- function(thermal_data) {
 get_vals <- function(points, thermal_data){
   vals <- st_extract(thermal_data["thermal_C"], points)
   vals_df <- data.frame(vals)
+  # if only one point, add back in time column and rearrange to format
+  if(length(vals_df) < 3){
+    vals_df$time <- st_dimensions(thermal_data)$time$values$start
+    vals_df <- vals_df |>
+      relocate(thermal_C, .after = time)
+  }
+  # if multiple points, group same date points and get mean temp
   if(dim(points)[1] > 1){
     vals_df <- vals_df |>
       group_by(time) |>
@@ -108,6 +125,7 @@ get_vals <- function(points, thermal_data){
 ################################################################################
 # function to clean up data for input to FLARE
 ################################################################################
+values <- thermal_vals
 clean_data <- function(values){
   values <- na.omit(values)
   if(length(values) > 2){

@@ -8,6 +8,7 @@ pacman::p_load('tidyverse', 'zarr', 'Rarr', 'sf', 'reticulate')
 ################################################################################
 # Use Python env
 ################################################################################
+message("Setting up Python environment. Python must be downloaded for this to run.")
 venv_path <- file.path(getwd(), ".venv")
 if (!dir.exists(venv_path)) {
   virtualenv_create(venv_path)
@@ -34,7 +35,7 @@ builtins <- import("builtins", convert = FALSE)
 # make sure http can be accessed
 os$environ["SSL_CERT_FILE"] <- certifi$where()
 
-
+message("Opening data from data.dynamical.org")
 # open the zarr from dynamical.org
 ds <- xr$open_zarr(
   "https://data.dynamical.org/noaa/gefs/forecast-35-day/latest.zarr?email=optional@email.com",
@@ -127,7 +128,7 @@ get_stage_2 <- function(start_date, end_date, site, bbox){
   dates <- seq(as.Date(start_date),
                as.Date(end_date),
                by = "1 day")
-  for (date in dates) {
+  for(date in dates) {
     message("Downloading stage 2 met data for ", as.Date(date))
     metdata <- get_temp_gefs(
       site_id = site,
@@ -138,21 +139,20 @@ get_stage_2 <- function(start_date, end_date, site, bbox){
       dplyr::group_by(reference_datetime, site_id) |>
       dplyr::group_walk(~ {
         dir <- file.path(
-          "drivers/met/test/stage2",
+          "drivers/met/gefs-v12/stage2",
           paste0("reference_datetime=", .y$reference_datetime),
           paste0("site_id=", .y$site_id))
         dir.create(dir, recursive = TRUE, showWarnings = FALSE)
         arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
       })
   }
-  
   message("Stage 2 data downloaded!")
 }
 
 # stage 3 function
 get_stage_3 <- function(start_date, site, bbox){
   # get date sequence
-  dates <- seq(as.POSIXct(as.Date(start_date) - (31)), 
+  dates <- seq(as.POSIXct(as.Date(start_date) - (5)), 
                as.POSIXct(start_date), 
                by = ("3 hours"))
   # empty df
@@ -171,7 +171,7 @@ get_stage_3 <- function(start_date, site, bbox){
     group_by(site_id) |>
     group_walk(~ {
       dir <- file.path(
-        "drivers/met/test/stage3",
+        "drivers/met/gefs-v12/stage3",
         paste0("site_id=", .y$site_id))
       dir.create(dir, recursive = TRUE, showWarnings = FALSE)
       arrow::write_parquet(.x, file.path(dir, "part-0.parquet"))
