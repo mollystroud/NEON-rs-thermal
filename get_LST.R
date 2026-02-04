@@ -17,7 +17,7 @@ ls = stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 ################################################################################
 # Function to create thermal stars object with specified dates and bbox
 ################################################################################
-get_lst <- function(bbox, bbox_utm, start_date, end_date) {
+get_lst <- function(bbox, start_date, end_date) {
   # grab items within dates of interest
   items <- ls |>
     stac_search(collections = "landsat-c2-l2",
@@ -40,16 +40,15 @@ get_lst <- function(bbox, bbox_utm, start_date, end_date) {
     )
     
     # define the cube space
-    EPSG <- st_crs(bbox_utm)$epsg
-    cube <- cube_view(srs = paste0("EPSG:", EPSG),
+    cube <- cube_view(srs = "EPSG:4326",,
                       extent = list(t0 = start_date, 
                                     t1 = end_date,
-                                    left = bbox_utm[1], 
-                                    right = bbox_utm[3],
-                                    top = bbox_utm[4], 
-                                    bottom = bbox_utm[2]),
-                      dx = 30, # 30 m resolution
-                      dy = 30, 
+                                    left = bbox[1], 
+                                    right = bbox[3],
+                                    top = bbox[4], 
+                                    bottom = bbox[2]),
+                      dx = 0.0003, # 30 m resolution
+                      dy = 0.0003, 
                       dt = "P1D",
                       aggregation = "median", 
                       resampling = "average")
