@@ -10,14 +10,14 @@ pacman::p_load(tidyverse, sf, raster, terra, dplyr, elevatr, marmap, rLakeAnalyz
 
 #file_index <- data.frame()
 #for(file in files){
-  #tif <- raster(file)
-  #xmin <- round(xmin(tif), digits = 4)
-  #xmax <- round(xmax(tif), digits = 4)
-  #ymin <- round(ymin(tif), digits = 4)
-  #ymax <- round(ymax(tif), digits = 4)
-  #info <- cbind(xmin, xmax, ymin, ymax, file)
-  #file_index <- rbind(file_index, info)
-  #print(file)
+#tif <- raster(file)
+#xmin <- round(xmin(tif), digits = 4)
+#xmax <- round(xmax(tif), digits = 4)
+#ymin <- round(ymin(tif), digits = 4)
+#ymax <- round(ymax(tif), digits = 4)
+#info <- cbind(xmin, xmax, ymin, ymax, file)
+#file_index <- rbind(file_index, info)
+#print(file)
 #}
 #write_csv(file_index, "Bathymetry_Rasters/index_file.csv")
 message("Downloading GLOBathy index file")
@@ -63,7 +63,14 @@ get_ha <- function(bathy_raster, points){
   ## plot the bathymetry profile
   area_layers$depths <- area_layers$depths*-1 #make it so that surface (0m) is at top
   # add actual elevation
-  elev <- elevatr::get_elev_point(points)
+  elev <- elevatr::get_elev_point(points[1,])
+  if(is.na(elev$elevation) == TRUE){
+    q <- readline("elevatr is unavailable. Please type an approximate elevation estimate of your lake: ")
+    area_layers$depths <- area_layers$depths + as.numeric(q)
+    plot(area_layers$Area.at.z, area_layers$depths, type = 'l', 
+         xlab = 'Area at Depth (m2)', ylab = 'Depth (m)', main = 'GLOBathy')
+    return(area_layers)
+  }
   #print(elev$elevation)
   area_layers$depths <- area_layers$depths + elev$elevation
   plot(area_layers$Area.at.z, area_layers$depths, type = 'l', 
