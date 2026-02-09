@@ -21,15 +21,13 @@ source("01LakeInfo.R")
 # chunks of time in this section and merging the dfs together at the end
 ################################################################################
 source("get_LST.R")
-data <- get_lst(bbox, 
+thermaldata <- get_lst(bbox, 
         box_utm, 
         paste0(start_date, "T00:00:00Z"), 
         paste0(end_date, "T00:00:00Z"))
-# mask out non-water pixels
-masked_data <- water_mask(data)
 # see what it looks like!
 ggplot() +
-  geom_stars(data = masked_data["thermal_C"]) +
+  geom_stars(data = thermaldata["thermal_C"]) +
   facet_wrap(~time) +
   theme_classic() +
   scale_fill_viridis(na.value = 'transparent') +
