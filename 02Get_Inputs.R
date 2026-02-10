@@ -111,13 +111,15 @@ source("edit_nml_functions.R")
 remotes::install_github('usgs-r/glmtools', force = T, upgrade = 'never')
 library(glmtools)
 
-var_list <- list(site, mylake_kw, site, points_df[[2]], points_df[[1]],
+var_list <- list(site, mylake_kw, site, points_df[[2]][1], points_df[[1]][1],
                  dim(ha)[1], rev(ha$depths), rev(ha$Area.at.z),
                  (max(ha$depths) - min(ha$depths)), 
-                 sed_temp, c(sed_data[1], sed_data[2]), c(sed_data[3], sed_data[4]))
+                 sed_temp, sed_data$sed_amp, sed_data$doy,
+                 sed_data$zone_heights, sed_data$nzones[1])
 var_name_list <- list("sim_name", "Kw", "lake_name", "latitude", "longitude",
                       "bsn_vals", "H", "A", "lake_depth",
-                      "sed_temp_mean", "sed_temp_amplitude", "sed_temp_peak_doy")
+                      "sed_temp_mean", "sed_temp_amplitude", "sed_temp_peak_doy",
+                      "zone_heights", "n_zones")
 # create list of variable values & names for input to nml
 update_nml(var_list, var_name_list, 
            working_directory = 'configuration/analysis', nml = 'glm3_base.nml')
