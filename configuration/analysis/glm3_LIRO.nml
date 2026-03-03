@@ -53,8 +53,7 @@
    the_temps = 20, 20, 20, 20, 18, 15, 14, 13, 12, 11, 10, 10, 10
    the_sals = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
    num_wq_vars = 0
-   wq_names = 'OXY_oxy'
-   wq_init_vals = 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300, 300
+   wq_names = ''
    snow_thickness = 0
    white_ice_thickness = 0
    blue_ice_thickness = 0

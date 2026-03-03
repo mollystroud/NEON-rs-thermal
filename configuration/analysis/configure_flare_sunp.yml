@@ -28,34 +28,21 @@ location:
   name: Lake Sunapee
   latitude: 43.3913
   longitude: 72.0576
-metadata:
-  generate_eml: yes
-  forecast_project_id: test
-  abstract: This is where a longer description of the forest can be added
-  forecast_title: FLARE
-  intellectualRights: insert license
-  model_description:
-    forecast_model_id: https://github.com/rqthomas/flare/commit/d1ddcb07b9d28863890597503fc4aa4a4496de56
-    name: General Lake Model
-    type: process-based
-    repository: https://github.com/AquaticEcoDynamics/GLM/releases/tag/v3.1.0
-  me:
-    individualName:
-      givenName: Whitney
-      surName: Woelmer
-    electronicMailAddress: wwoelmer@vt.edu
-    id: INSERT ORCID
 da_setup:
   da_method: enkf
-  par_fit_method: perturb_const
-  ensemble_size: 200
+  par_fit_method: perturb
+  ensemble_size: 31
   localization_distance: .na
   no_negative_states: yes
   assimilate_first_step: no
-  inflation_factor: 1.08
   use_obs_constraint: yes
+  use_inflation_factor: no
+  inflation_factor: 1.08
+  inflation_only_at_da: no
+  add_random_noise: 2
 model_settings:
   ncore: 4
+  max_model_layers: 75
   model_name: glm3
   base_GLM_nml: glm3_sunp.nml
   modeled_depths:
