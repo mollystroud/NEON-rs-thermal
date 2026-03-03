@@ -30,7 +30,7 @@ location:
   longitude: -82.017745
 da_setup:
   da_method: enkf
-  par_fit_method: perturb
+  par_fit_method: inflate
   ensemble_size: 31
   localization_distance: .na
   no_negative_states: yes
