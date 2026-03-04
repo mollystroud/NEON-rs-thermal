@@ -3,7 +3,7 @@ library(lubridate)
 set.seed(200)
 
 
-site <- "LIRO"
+site <- "PRPO"
 
 # This need to be set to run each experiment
 run_name <- "run"
@@ -59,14 +59,14 @@ sims$horizon <- stringr::str_split_fixed(sims$date, "_", 3)[,3]
 
 sims <- sims |>
   mutate(model = as.character(model)) |>
-  select(-date) |>
+  dplyr::select(-date) |>
   distinct_all() |>
   arrange(start_dates)
 
 sims$horizon[1:length(models)] <- 0
 
-#i <- 58
-for(i in starting_index:nrow(sims)){
+#starting_index <- 150
+for(i in 208:nrow(sims)){
 
   message(paste0("index: ", i))
   message(paste0("     Running model: ", sims$model[i], " "))
@@ -144,7 +144,8 @@ for(i in starting_index:nrow(sims)){
                                                        end_datetime = config$run_config$end_datetime,
                                                        forecast_start_datetime = config$run_config$forecast_start_datetime,
                                                        forecast_horizon =  config$run_config$forecast_horizon)
-
+  states_non_vertical <- NULL
+  states_non_vertical$depth_sd <- 0
 
   states_config <- FLAREr:::generate_states_to_obs_mapping(states_config, obs_config)
 
@@ -173,8 +174,8 @@ for(i in starting_index:nrow(sims)){
                                                  obs_config = obs_config,
                                                  da_method = config$da_setup$da_method,
                                                  par_fit_method = config$da_setup$par_fit_method,
-                                                 obs_secchi = obs_non_vertical$obs_secchi,
-                                                 obs_depth = obs_non_vertical$obs_depth)
+                                                 obs_non_vertical = obs_non_vertical,
+                                                 states_non_vertical = states_non_vertical)
 
   # Save forecast
 
@@ -196,7 +197,7 @@ for(i in starting_index:nrow(sims)){
 
   targets_df <- obs_config |>
     rename(variable = target_variable) |>
-    select(variable, obs_sd) |>
+    dplyr::select(variable, obs_sd) |>
     right_join(targets_df, by = "variable") |>
     mutate(up95 = observation + 1.96 * obs_sd,
            low95 = observation - 1.96 * obs_sd,
