@@ -42,7 +42,7 @@ da_setup:
   add_random_noise: 2
 model_settings:
   ncore: 4
-  max_model_layers: 75
+  max_model_layers: 100
   model_name: glm3
   base_GLM_nml: glm3_sunp.nml
   modeled_depths:
@@ -70,7 +70,6 @@ model_settings:
   - 20.0
   - 25.0
   - 30.0
-  max_model_layers: 100
   par_config_file: parameter_calibration_config_sunp.csv
   obs_config_file: observations_config_sunp.csv
   states_config_file: states_config_sunp.csv
