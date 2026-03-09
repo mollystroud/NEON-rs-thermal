@@ -129,7 +129,6 @@ met:
   use_ler_vars: no
   forecast_lag_days: 1
 uncertainty:
-  use_obs_constraint: yes
   observation: yes
   process: yes
   weather: yes
