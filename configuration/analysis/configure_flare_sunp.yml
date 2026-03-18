@@ -43,7 +43,7 @@ da_setup:
 model_settings:
   ncore: 4
   max_model_layers: 100
-  model_name: glm3
+  model_name: glm
   base_GLM_nml: glm3_sunp.nml
   modeled_depths:
   - 0.1
@@ -138,8 +138,3 @@ uncertainty:
   inflow: yes
 output_settings:
   diagnostics_names: extc
-  evaluate_past: yes
-  variables_in_scores:
-  - state
-  - parameter
-  generate_plots: no
