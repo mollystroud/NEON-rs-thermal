@@ -71,8 +71,8 @@ model_settings:
   - 5.5
   - 5.75
   - 6.0
-  par_config_file: parameter_calibration_config_BARC.csv
-  obs_config_file: observations_config_BARC.csv
+  par_config_file: parameter_calibration_config.csv
+  obs_config_file: observations_config.csv
   states_config_file: states_config_BARC.csv
 default_init:
   lake_depth: 6.1

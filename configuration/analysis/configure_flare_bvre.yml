@@ -73,8 +73,8 @@ model_settings:
   - 12.0
   - 12.5
   - 13.0
-  par_config_file: parameter_calibration_config_bvre.csv
-  obs_config_file: observations_config_bvre.csv
+  par_config_file: parameter_calibration_config.csv
+  obs_config_file: observations_config.csv
   states_config_file: states_config_bvre.csv
 default_init:
   lake_depth: 13

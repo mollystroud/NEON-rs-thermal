@@ -59,8 +59,8 @@ model_settings:
   - 2.5
   - 2.75
   - 3.0
-  par_config_file: parameter_calibration_config_SUGG.csv
-  obs_config_file: observations_config_SUGG.csv
+  par_config_file: parameter_calibration_config.csv
+  obs_config_file: observations_config.csv
   states_config_file: states_config_SUGG.csv
 default_init:
   lake_depth: 3.1
