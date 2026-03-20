@@ -46,7 +46,7 @@ model_settings:
   model_name: glm
   base_GLM_nml: glm3_sunp.nml
   modeled_depths:
-  - 0.1
+  - 0.0
   - 0.5
   - 1.0
   - 1.5
@@ -70,8 +70,8 @@ model_settings:
   - 20.0
   - 25.0
   - 30.0
-  par_config_file: parameter_calibration_config_sunp.csv
-  obs_config_file: observations_config_sunp.csv
+  par_config_file: parameter_calibration_config.csv
+  obs_config_file: observations_config.csv
   states_config_file: states_config_sunp.csv
 default_init:
   lake_depth: 33
@@ -127,14 +127,13 @@ met:
   local_met_directory: drivers/met
   use_forecasted_met: yes
   use_ler_vars: no
-  forecast_lag_days: 1
+  forecast_lag_days: 0
 uncertainty:
   observation: yes
   process: yes
   weather: yes
   initial_condition: yes
   parameter: yes
-  met_downscale: yes
   inflow: yes
 output_settings:
   diagnostics_names: extc
