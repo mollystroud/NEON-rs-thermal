@@ -31,11 +31,11 @@ location:
 da_setup:
   da_method: enkf
   par_fit_method: perturb
-  ensemble_size: 31
+  ensemble_size: 155
   localization_distance: .na
   no_negative_states: yes
   assimilate_first_step: no
-  use_obs_constraint: yes
+  use_obs_constraint: no
   use_inflation_factor: no
   inflation_factor: 1.08
   inflation_only_at_da: no
@@ -72,7 +72,7 @@ model_settings:
   - 10.0
   par_config_file: parameter_calibration_config.csv
   obs_config_file: observations_config.csv
-  states_config_file: states_config_LIRO.csv
+  states_config_file: states_config.csv
 default_init:
   lake_depth: 10.1
   temp:
