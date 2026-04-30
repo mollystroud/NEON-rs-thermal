@@ -5,7 +5,7 @@ format: html
 editor: visual
 ---
 
-## This document creates all figures shown in the paper, except Fig.1 which was created in Adobe Illustrator
+## This document creates all figures shown in the paper
 
 ```{r}
 # Load in libraries
@@ -14,6 +14,7 @@ pacman::p_load(dplyr, ggplot2, patchwork, tidyverse, lubridate, viridis, wesande
 ```
 
 ## Figure 2
+
 ```{r}
 # This figure shows the aggregated CRPS of all sites across all depths
 scores_aggregated <- arrow::open_dataset("scores/parquet/") |>
@@ -21,6 +22,7 @@ scores_aggregated <- arrow::open_dataset("scores/parquet/") |>
   filter(datetime > "2021-01-01") |>
   filter(variable == "temperature") |>
   filter(horizon > 0) |>
+  #filter(site_id != "PRLA" & site_id != "PRPO") |>
   group_by(model_id, horizon) |>
   summarize(median_crps = median(crps, na.rm = T),
             mean_crps = mean(crps, na.rm = T))
@@ -29,16 +31,19 @@ scores_aggregated <- arrow::open_dataset("scores/parquet/") |>
 
 ggplot(data = scores_aggregated, 
        aes(x = horizon, y = median_crps, colour = model_id)) +
-  geom_line() +
-  scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  labs(y = 'Median CRPS (degree C)', x = 'Horizon (days ahead)', 
-       title = 'Accuracy across depth', color = "") +
+  geom_line(linewidth = 1) +
+  scale_colour_viridis_d(begin = 0.2, end = 0.8,
+                         labels = c("No DA", "With in situ", "With RS")) +
+  labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
-  theme(legend.position = 'bottom')
+  theme(legend.position = 'bottom', legend.margin = margin(t = -10))
+
+ggsave(paste0('paper_figs/', 'Figure2.png'), width = 4, height = 3, units = 'in', dpi = 400)
 
 ```
 
 ## Figure 3
+
 ```{r}
 # This figure shows the aggregated CRPS across depths for each of the 10 sites
 scores_sites <- arrow::open_dataset("scores/parquet/") |>
@@ -52,15 +57,20 @@ scores_sites <- arrow::open_dataset("scores/parquet/") |>
 
 ggplot(data = scores_sites, 
        aes(x = horizon, y = median_crps, colour = model_id)) +
-  geom_line() +
+  geom_line(linewidth = 1) +
   facet_wrap(~site_id, nrow = 2) +
-  scale_colour_viridis_d(begin = 0.2, end = 0.8) +
-  labs(y = 'Median CRPS (degree C)', x = 'Horizon (days ahead)', color = "") +
+  scale_colour_viridis_d(begin = 0.2, end = 0.8, 
+                         labels = c("No DA", "With in situ", "With RS")) +
+  labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
-  theme(legend.position = 'bottom')
+  theme(legend.position = 'bottom', legend.margin = margin(t = -10))
+
+ggsave(paste0('paper_figs/', 'Figure3.png'), width = 5, height = 3, units = 'in', dpi = 400)
+
 ```
 
 ## Figure 4
+
 ```{r}
 # This figure shows the CRPS for each site at each depth for forecasts with RS data assimilation, as well as the difference in CRPS for each site between RS data assimilation and no data assimilation
 scores_depth <- arrow::open_dataset("scores/parquet/") |>
@@ -78,29 +88,39 @@ scores_depth <- scores_depth |>
 
 ggplot(scores_depth[scores_depth$model_id == "analysis_run_with_rs",], 
        aes(x = median_crps, y = depth, color = site_id, group = site_id)) +
-  geom_line(orientation = "y") +
-  geom_point() +
+  geom_line(orientation = "y", linewidth = 0.9) +
+  geom_point(size = 1) +
   theme_bw() +
   scale_color_manual(values = wes_palette(9, name = "Zissou1", type = 'continuous')) +
-  scale_y_continuous(trans = c("reverse"))
+  scale_y_continuous(trans = c("reverse")) +
+  labs(x = "Median CRPS (°C)", y = "Depth (m)", color = "")
+
+ggsave(paste0('paper_figs/', 'Figure4a.pdf'), width = 6, height = 5, units = 'in')
+ggsave(paste0('paper_figs/', 'Figure4a.png'), width = 5, height = 3, units = 'in', dpi = 400)
+
 
 diff_df <- scores_depth |>
   group_by(horizon, depth, site_id) |>
-  summarise(median_crps_diff = median_crps[model_id == "analysis_run_no_da"] - median_crps[model_id == "analysis_run_with_rs"],
-            mean_crps_diff   = mean_crps[model_id == "analysis_run_no_da"] - mean_crps[model_id == "analysis_run_with_rs"],
+  summarise(median_crps_diff = median_crps[model_id == "analysis_run_with_rs"] - median_crps[model_id == "analysis_run_no_da"],
+            mean_crps_diff   = mean_crps[model_id == "analysis_run_with_rs"] - mean_crps[model_id == "analysis_run_no_da"],
             .groups = "drop")
 
 ggplot(diff_df, 
        aes(x = median_crps_diff, y = depth, color = site_id, group = site_id)) +
-  geom_line(orientation = "y") +
-  geom_point() +
+    geom_vline(xintercept = 0, linetype = 'dashed', color = 'darkgray') +
+  geom_line(orientation = "y", linewidth = 0.9) +
+  geom_point(size = 1) +
   theme_bw() +
   scale_color_manual(values = wes_palette(9, name = "Zissou1", type = 'continuous')) +
   scale_y_continuous(trans = c("reverse")) +
-  labs(x = 'no DA CRPS - RS CRPS', y = "Depth", color = "")
+  labs(x = 'Difference in CRPS (with RS - no DA)', y = "Depth", color = "")
+
+ggsave(paste0('paper_figs/', 'Figure4b.pdf'), width = 6, height = 5, units = 'in')
+
 ```
 
 ## Figure 5
+
 ```{r}
 # This figure shows the CRPS of each site during each season, aggregated across depth
 scores_seasonal <- arrow::open_dataset("scores/parquet/") |>
@@ -122,16 +142,19 @@ scores_seasonal <- arrow::open_dataset("scores/parquet/") |>
 
 ggplot(data = scores_seasonal[scores_seasonal$model_id == "analysis_run_with_rs",], 
        aes(x = horizon, y = mean_crps, color = site_id)) +
-  geom_line() +
+  geom_line(linewidth = 1) +
   facet_wrap(~season) +
   scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
   labs(y = 'CRPS (degree C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
   theme(legend.position = 'bottom')
+
+ggsave(paste0('paper_figs/', 'Figure5.pdf'), width = 6, height = 5, units = 'in')
+
 ```
 
-
 ## Figure 6
+
 ```{r}
 # This figure shows the reliability of RS forecasts aggregated across depths and at depths 3-m or shallower
 reliability_scores <- arrow::open_dataset("scores/parquet/") |>
@@ -149,14 +172,19 @@ reliability_scores <- arrow::open_dataset("scores/parquet/") |>
   
 ggplot(reliability_scores[reliability_scores$model_id == "analysis_run_with_rs",], 
        aes(x=horizon, y=perc, colour = site_id)) +
-    geom_hline(yintercept = 90, colour = 'grey3', linetype = 'dashed') +
+    geom_hline(yintercept = 90, colour = 'darkgray', linetype = 'dashed') +
     geom_line(alpha = 0.8, linewidth = 1) +
-    labs(y = 'Percentage of observations within\n90% confidence intervals', x='Horizon (days)') +
-    annotate('text', x = 10, y = 100, label = 'underconfident', size = 5, hjust = 1) +
-    annotate('text', x = 10, y = 40, label = 'overconfident', size = 5, hjust = 1) +
+    labs(y = 'Percentage of observations within\n90% confidence intervals', 
+         x ='Horizon (days)',
+         color = "") +
+    annotate('text', x = 10, y = 100, label = 'underconfident', 
+             size = 5, hjust = 1, color = 'gray30') +
+    annotate('text', x = 10, y = 40, label = 'overconfident',
+             size = 5, hjust = 1, color = 'gray30') +
     theme_bw() +
     ylim(0, 100) +
   scale_color_manual(values = wes_palette(9, name = "Zissou1", type = 'continuous'))
+ggsave(paste0('paper_figs/', 'Figure6a.pdf'), width = 6, height = 5, units = 'in')
 
 reliability_scores_3m <- arrow::open_dataset("scores/parquet/") |>
   dplyr::collect() |>
@@ -168,24 +196,30 @@ reliability_scores_3m <- arrow::open_dataset("scores/parquet/") |>
   mutate(is_in = between(observation, quantile10, quantile90)) |> 
   group_by(horizon, is_in, model_id, site_id) |> 
   summarise(n = n()) |> 
-  pivot_wider(names_from = is_in, names_prefix = 'within_', values_from = n, values_fill = 0) |> 
+  pivot_wider(names_from = is_in, names_prefix = 'within_', values_from = n, values_fill = 0) |>
   mutate(perc = within_TRUE/(within_FALSE + within_TRUE)*100)
   
 ggplot(reliability_scores_3m[reliability_scores_3m$model_id == "analysis_run_with_rs",], 
        aes(x=horizon, y=perc, colour = site_id)) +
-    geom_hline(yintercept = 90, colour = 'grey3', linetype = 'dashed') +
-    geom_line(alpha = 0.8) +
+    geom_hline(yintercept = 90, colour = 'darkgray', linetype = 'dashed') +
+    geom_line(alpha = 0.8, linewidth = 1) +
     labs(y = 'Percentage of observations within\n90% confidence intervals', 
          x='Horizon (days)',
-         title = "3 m or shallower") +
-    annotate('text', x = 10, y = 100, label = 'underconfident', size = 5, hjust = 1) +
-    annotate('text', x = 10, y = 40, label = 'overconfident', size = 5, hjust = 1) +
+         color = "") +
+    annotate('text', x = 10, y = 100, label = 'underconfident', 
+             size = 5, hjust = 1, color = 'gray30') +
+    annotate('text', x = 10, y = 40, label = 'overconfident',
+             size = 5, hjust = 1, color = 'gray30') +
+    annotate('text', x = 14, y = 0, label = '3-m and shallower', size = 5, hjust = 1) +
     theme_bw() +
     ylim(0, 100) +
   scale_color_manual(values = wes_palette(9, name = "Zissou1", type = 'continuous'))
+ggsave(paste0('paper_figs/', 'Figure6b.pdf'), width = 6, height = 5, units = 'in')
+
 ```
 
 ## Figure 7
+
 ```{r}
 # This figure shows the Spearman's correlation 
 stats_orig <- read_csv("LakeStats.csv")
@@ -245,5 +279,76 @@ ggplot() +
 
 ```
 
+## Supplementary figures
+
+```{r}
+# This figure shows the remote sensing temperature estimates plotted against the in situ temperature estimates
+folders <- list.files("/Users/mollystroud/Desktop/postdoc/flare-rs-thermal/targets", full.names = T)
+library(stringr)
+alldata <- data.frame()
+for(folder in folders){
+  name <- str_sub(folder, start = -4)
+  insitu <- read_csv(paste0(folder, '/', name, '-targets-insitu.csv')) |>
+    filter(!is.na(observation)) |>
+    filter(as.Date(datetime) >= "2021-01-02") |>
+    slice_min(depth, n = 1) |>
+    rename(insitu = observation) 
+  rs <- read_csv(paste0(folder, '/', name, '-targets-rs.csv'))
+  data <- left_join(rs, insitu, by = c('datetime', 'site_id'))
+  alldata <- rbind(data, alldata)
+}
+alldata <- na.omit(alldata) |>
+  group_by(site_id) |>
+  mutate(sd_resid = sd(observation - insitu))
+
+resids <- alldata |>
+  group_by(site_id) |>
+  summarize(sd_resid = round(sd(observation - insitu), 3))
 
 
+ggplot(alldata[alldata$datetime > "2020-10-01" & alldata$datetime < "2023-01-01",], 
+       aes(x = insitu, y = observation)) +
+  geom_point(aes(color = as.Date(datetime)), alpha = 0.8, size = 2) +
+  geom_abline(intercept = 0, slope = 1) +
+  geom_smooth(se = F, color = 'maroon', method = 'lm') +
+  facet_wrap(~site_id, nrow = 2) +
+  theme_classic() +
+  scale_color_viridis_c(trans = 'date', 
+                        breaks = c(as.Date("2021-05-01"), as.Date("2022-10-01"))) +
+  labs(x = 'In situ temperature (C) ', y = 'Remote sensing temperature (C)', 
+       color = element_blank()) +
+  theme(legend.position = 'bottom') #+
+  # geom_label(data = resids, aes(x = Inf, y = Inf, 
+  #                               label = paste("Stdev of resids = ", sd_resid)),
+  #            hjust = 1, vjust = 1)
+ggsave(paste0('paper_figs/', 'FigureS1.pdf'), width = 8, height = 5, units = 'in')
+
+# Now, show the (RS estimates vs. in situ estimates) vs. the overall accuracy of each site
+overall_accuracy <- arrow::open_dataset("scores/parquet/") |>
+  dplyr::collect() |>
+  filter(datetime > "2021-01-01") |>
+  filter(variable == "temperature") |>
+  filter(horizon > 0) |>
+  filter(model_id == "analysis_run_with_rs") |>
+  group_by(site_id) |>
+  summarize(median_crps = median(crps, na.rm = T),
+            mean_crps = mean(crps, na.rm = T))
+
+results <- alldata |>
+  group_by(site_id) |>
+  summarize(bias = mean(observation - insitu, na.rm = T))
+
+results_all <- left_join(results, overall_accuracy, by = c("site_id"))
+
+ggplot(results_all, aes(x = median_crps, y = abs(bias), color = site_id)) +
+  geom_point() +
+  theme_bw() +
+  geom_smooth(se = F, method = 'lm', aes(group = 1), 
+              color = 'gray50', linetype = 'dashed') +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  labs(x = "Median CRPS (°C)", y = "Remote sensing observation \n mean absolute bias (°C)",
+       color = "")
+
+ggsave(paste0('paper_figs/', 'FigureS2.png'), width = 5, height = 3, units = 'in', dpi = 400)
+
+```
