@@ -10,7 +10,7 @@ editor: visual
 ```{r}
 # Load in libraries
 require(pacman)
-pacman::p_load(dplyr, ggplot2, patchwork, tidyverse, lubridate, viridis, wesanderson)
+pacman::p_load(dplyr, ggplot2, patchwork, tidyverse, lubridate, viridis, wesanderson, patchwork)
 ```
 
 ## Figure 2
@@ -51,21 +51,53 @@ scores_sites <- arrow::open_dataset("scores/parquet/") |>
   filter(datetime > "2021-01-01") |>
   filter(variable == "temperature") |>
   filter(horizon > 0) |>
+  filter(model_id == c("analysis_run_no_da", "analysis_run_with_rs", "analysis_run_with_insitu")) |>
+  #filter(site_id != "PRLA" & site_id != "PRPO") |>
   group_by(model_id, horizon, site_id) |>
   summarize(median_crps = median(crps, na.rm = T),
             mean_crps = mean(crps, na.rm = T))
 
-ggplot(data = scores_sites, 
+sitenames <- as_labeller(c("BARC" = "Lake Barco",
+               "bvre" = "Beaverdam Reservoir",
+               "ccre" = "Carvins Cove Reservoir",
+               "CRAM" = "Lake Crampton",
+               "fcre" = "Falling Creek Reservoir",
+               "LIRO" = "Little Rock Reservoir",
+               "PRLA" = "Prairie Lake",
+               "PRPO" = "Prairie Pothole",
+               "SUGG" = "Lake Suggs",
+               "sunp" = "Lake Sunapee"))
+
+without_pr <- ggplot(data = scores_sites[scores_sites$site_id != "PRPO" & scores_sites$site_id != "PRLA",], 
        aes(x = horizon, y = median_crps, colour = model_id)) +
   geom_line(linewidth = 1) +
-  facet_wrap(~site_id, nrow = 2) +
+  facet_wrap(~site_id, nrow = 2, labeller = sitenames) +
   scale_colour_viridis_d(begin = 0.2, end = 0.8, 
                          labels = c("No DA", "With in situ", "With RS")) +
   labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
-  theme(legend.position = 'bottom', legend.margin = margin(t = -10))
+  theme(legend.position = 'bottom', legend.margin = margin(t = -10),
+        strip.text = element_text(size=8))
+without_pr
 
-ggsave(paste0('paper_figs/', 'Figure3.png'), width = 5, height = 3, units = 'in', dpi = 400)
+with_pr <- ggplot(data = scores_sites[scores_sites$site_id == "PRPO" | scores_sites$site_id == "PRLA",], 
+       aes(x = horizon, y = median_crps, colour = model_id)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~site_id, nrow = 2, labeller = sitenames) +
+  scale_colour_viridis_d(begin = 0.2, end = 0.8, 
+                         labels = c("No DA", "With in situ", "With RS")) +
+  labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
+  theme_bw() +
+  theme(legend.position = 'bottom', legend.margin = margin(t = -10),
+        strip.text = element_text(size=8))
+with_pr
+
+without_pr + with_pr + 
+  plot_layout(widths = c(4,1), guides = "collect", axis_titles = "collect") &
+  theme(legend.position = "bottom", strip.text = element_text(size = 6))
+
+
+ggsave(paste0('paper_figs/', 'Figure3.png'), width = 6, height = 3, units = 'in', dpi = 400)
 
 ```
 
@@ -336,7 +368,7 @@ overall_accuracy <- arrow::open_dataset("scores/parquet/") |>
 
 results <- alldata |>
   group_by(site_id) |>
-  summarize(bias = mean(observation - insitu, na.rm = T))
+  summarize(bias = median(observation - insitu, na.rm = T))
 
 results_all <- left_join(results, overall_accuracy, by = c("site_id"))
 
@@ -345,8 +377,18 @@ ggplot(results_all, aes(x = median_crps, y = abs(bias), color = site_id)) +
   theme_bw() +
   geom_smooth(se = F, method = 'lm', aes(group = 1), 
               color = 'gray50', linetype = 'dashed') +
-  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
-  labs(x = "Median CRPS (°C)", y = "Remote sensing observation \n mean absolute bias (°C)",
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous'),
+                     labels = c("BARC" = "Lake Barco",
+               "bvre" = "Beaverdam Reservoir",
+               "ccre" = "Carvins Cove Reservoir",
+               "CRAM" = "Lake Crampton",
+               "fcre" = "Falling Creek Reservoir",
+               "LIRO" = "Little Rock Reservoir",
+               "PRLA" = "Prairie Lake",
+               "PRPO" = "Prairie Pothole",
+               "SUGG" = "Lake Suggs",
+               "sunp" = "Lake Sunapee")) +
+  labs(x = "Median CRPS (°C)", y = "Remote sensing observation \n median absolute bias (°C)",
        color = "")
 
 ggsave(paste0('paper_figs/', 'FigureS2.png'), width = 5, height = 3, units = 'in', dpi = 400)
