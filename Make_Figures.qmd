@@ -255,8 +255,7 @@ scores_seasonal <- arrow::open_dataset("scores/parquet/") |>
            month %in% c(9, 10, 11) ~ "Fall")) |>
   filter(horizon > 0) |>
   group_by(site_id, model_id, horizon, season) |>
-  summarize(median_crps = median(crps, na.rm = T),
-            mean_crps = mean(crps, na.rm = T))
+  summarize(median_crps = median(crps, na.rm = T))
 
 ggplot(data = scores_seasonal[scores_seasonal$model_id == "analysis_run_with_rs",], 
        aes(x = horizon, y = median_crps, color = site_id)) +
@@ -269,6 +268,88 @@ ggplot(data = scores_seasonal[scores_seasonal$model_id == "analysis_run_with_rs"
 
 ggsave(paste0('paper_figs/', 'Figure6.png'), width = 6, height = 5, units = 'in')
 
+
+delta_seasons <- scores_seasonal |>
+  filter(model_id %in% c("analysis_run_no_da","analysis_run_with_rs")) |>
+  pivot_wider(
+    id_cols   = c(site_id, horizon, season),    # the keys that define a unique case
+    names_from = model_id,                      # create a column for each model_id
+    values_from = median_crps,
+    names_glue = "median_{model_id}"            # nice column names
+  ) |> mutate(
+  diff_median_crps = median_analysis_run_with_rs -
+    median_analysis_run_no_da) |>
+  select(site_id, horizon, season,
+         median_analysis_run_no_da,
+         median_analysis_run_with_rs,
+         diff_median_crps)
+
+# This figure shows the difference in CRPS between RS and no RS for each season
+ggplot(data = delta_seasons, aes(x = horizon, y = diff_median_crps, color = site_id)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~season) +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  labs(y = 'Δ CRPS (RS - no DA) (°C)', x = 'Horizon (days ahead)', color = "") +
+  theme_bw() +
+  theme(legend.position = 'bottom') +
+  geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') +
+  annotate('text', x = 10, y = 2.5, label = 'no DA performs better', color = 'gray40') +
+  annotate('text', x = 10, y = -0.7, label = 'RS performs better', color = 'gray40')
+
+ggsave(paste0('paper_figs/', 'Figure6X.png'), width = 6, height = 5, units = 'in')
+
+
+
+
+# Now, just for surface estimates
+scores_seasonal_3m <- arrow::open_dataset("scores/parquet/") |>
+  dplyr::collect() |>
+  filter(datetime > "2021-01-01") |>
+  filter(variable == "temperature") |>
+  filter(!is.na(observation)) |>
+  group_by(site_id) |>
+  filter(depth == min(depth, na.rm = TRUE)) |>
+  ungroup() |>
+  mutate(month = month(datetime), 
+         season = case_when(
+           month %in% c(12, 1, 2)  ~ "Winter",
+           month %in% c(3, 4, 5)   ~ "Spring",
+           month %in% c(6, 7, 8)   ~ "Summer",
+           month %in% c(9, 10, 11) ~ "Fall")) |>
+  filter(horizon > 0) |>
+  group_by(site_id, model_id, horizon, season) |>
+  summarize(median_crps = median(crps, na.rm = T))
+
+
+
+
+delta_seasons_3m <- scores_seasonal_3m |>
+  filter(model_id %in% c("analysis_run_no_da","analysis_run_with_rs")) |>
+  pivot_wider(
+    id_cols   = c(site_id, horizon, season),    # the keys that define a unique case
+    names_from = model_id,                      # create a column for each model_id
+    values_from = median_crps,
+    names_glue = "median_{model_id}"            # nice column names
+  ) |> mutate(
+    diff_median_crps = median_analysis_run_with_rs -
+      median_analysis_run_no_da) |>
+  select(site_id, horizon, season,
+         median_analysis_run_no_da,
+         median_analysis_run_with_rs,
+         diff_median_crps)
+
+ggplot(data = delta_seasons_3m, aes(x = horizon, y = diff_median_crps, color = site_id)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~season) +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  labs(y = 'Δ CRPS (RS - no DA) (°C)', x = 'Horizon (days ahead)', color = "") +
+  theme_bw() +
+  theme(legend.position = 'bottom') +
+  geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') +
+  annotate('text', x = 10, y = 2.5, label = 'no DA performs better', color = 'gray40') +
+  annotate('text', x = 10, y = -0.7, label = 'RS performs better', color = 'gray40')
+
+ggsave(paste0('paper_figs/', 'Figure6Y.png'), width = 6, height = 5, units = 'in')
 ```
 
 ## Figure 7
