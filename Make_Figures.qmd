@@ -26,7 +26,6 @@ scores_aggregated <- arrow::open_dataset("scores/parquet/") |>
   group_by(model_id, horizon) |>
   summarize(median_crps = median(crps, na.rm = T),
             mean_crps = mean(crps, na.rm = T))
-            #mean_crps = mean(crps, na.rm = T, trim = 0.25))
 
 levels(scores_aggregated$model_id) <- c("No DA", "In situ (all depths)", "In situ (RS frequency)", "In situ (surface)", "RS", "RS (in situ uncertainty)")
   
@@ -43,7 +42,8 @@ ggplot(data = scores_aggregated,
                      values = setNames(c("#440154FF", "#2A788EFF","#2A788EFF","#2A788EFF", "#7AD151FF","#7AD151FF"), groups)) +
 
   labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
-  theme_bw() #+
+  theme_bw() +
+  theme(legend.key.width = unit(2, "line"))#+
   #theme(legend.position = 'bottom', legend.margin = margin(t = -10))
 
 ggsave(paste0('paper_figs/', 'Figure2.png'), width = 6, height = 3, units = 'in', dpi = 400)
@@ -59,11 +59,14 @@ scores_sites <- arrow::open_dataset("scores/parquet/") |>
   filter(datetime > "2021-01-01") |>
   filter(variable == "temperature") |>
   filter(horizon > 0) |>
-  #filter(model_id == c("analysis_run_no_da", "analysis_run_with_rs", "analysis_run_with_insitu")) |>
-  #filter(site_id != "PRLA" & site_id != "PRPO") |>
+  mutate(model_id = as.factor(model_id)) |>
   group_by(model_id, horizon, site_id) |>
   summarize(median_crps = median(crps, na.rm = T),
             mean_crps = mean(crps, na.rm = T))
+
+levels(scores_sites$model_id) <- c("No DA", "In situ (all depths)", "In situ (RS frequency)", "In situ (surface)", "RS", "RS (in situ uncertainty)")
+
+groups <- c("No DA", "In situ (all depths)", "In situ (surface)", "In situ (RS frequency)", "RS", "RS (in situ uncertainty)")
 
 sitenames <- as_labeller(c("BARC" = "Lake Barco",
                "bvre" = "Beaverdam Reservoir",
@@ -76,24 +79,34 @@ sitenames <- as_labeller(c("BARC" = "Lake Barco",
                "SUGG" = "Lake Suggs",
                "sunp" = "Lake Sunapee"))
 
+# without prairie lakes
 without_pr <- ggplot(data = scores_sites[scores_sites$site_id != "PRPO" & scores_sites$site_id != "PRLA",], 
-       aes(x = horizon, y = median_crps, colour = model_id)) +
-  geom_line(linewidth = 1) +
+       aes(x = horizon, y = median_crps, colour = model_id, linetype = model_id)) +
+  geom_line(linewidth = 0.5) +
   facet_wrap(~site_id, nrow = 2, labeller = sitenames) +
-  scale_colour_viridis_d()+#begin = 0.2, end = 0.8, 
+  #scale_colour_viridis_d()+#begin = 0.2, end = 0.8, 
                          #labels = c("No DA", "With in situ", "With RS")) +
+  scale_linetype_manual(name = "",
+                        values = setNames(c("solid", "solid", "dashed", "dotted", "solid", "dashed"), groups))  +
+  scale_color_manual(name = "", 
+                     values = setNames(c("#440154FF", "#2A788EFF","#2A788EFF","#2A788EFF", "#7AD151FF","#7AD151FF"), groups)) +
   labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
   theme(legend.position = 'bottom', legend.margin = margin(t = -10),
-        strip.text = element_text(size=8))
+        strip.text = element_text(size=8), legend.key.width = unit(2, "line"))
 without_pr
 
+# with prairie lakes
 with_pr <- ggplot(data = scores_sites[scores_sites$site_id == "PRPO" | scores_sites$site_id == "PRLA",], 
-       aes(x = horizon, y = median_crps, colour = model_id)) +
-  geom_line(linewidth = 1) +
+       aes(x = horizon, y = median_crps, colour = model_id, linetype = model_id)) +
+  geom_line(linewidth = 0.5) +
   facet_wrap(~site_id, nrow = 2, labeller = sitenames) +
-  scale_colour_viridis_d()+#begin = 0.2, end = 0.8, 
+  #scale_colour_viridis_d()+#begin = 0.2, end = 0.8, 
                          #labels = c("No DA", "With in situ", "With RS")) +
+  scale_linetype_manual(name = "",
+                        values = setNames(c("solid", "solid", "dashed", "dotted", "solid", "dashed"), groups))  +
+  scale_color_manual(name = "", 
+                     values = setNames(c("#440154FF", "#2A788EFF","#2A788EFF","#2A788EFF", "#7AD151FF","#7AD151FF"), groups)) +
   labs(y = 'Median CRPS (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
   theme(legend.position = 'bottom', legend.margin = margin(t = -10),
@@ -102,7 +115,7 @@ with_pr
 
 without_pr + with_pr + 
   plot_layout(widths = c(4,1), guides = "collect", axis_titles = "collect") &
-  theme(legend.position = 'right', strip.text = element_text(size = 6))
+  theme(legend.position = 'right', strip.text = element_text(size = 6), legend.key.width = unit(2, "line"))
   #theme(legend.position = "bottom", strip.text = element_text(size = 6))
 
 
@@ -216,9 +229,20 @@ rs_depth <- ggplot(scores_depth[scores_depth$model_id == "analysis_run_with_rs",
   geom_line(orientation = "y", linewidth = 0.9) +
   geom_point(size = 1) +
   theme_bw() +
-  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous'),
+                     labels = c("BARC" = "Lake Barco",
+                                "bvre" = "Beaverdam Reservoir",
+                                "ccre" = "Carvins Cove Reservoir",
+                                "CRAM" = "Lake Crampton",
+                                "fcre" = "Falling Creek Reservoir",
+                                "LIRO" = "Little Rock Lake",
+                                "PRLA" = "Prairie Lake",
+                                "PRPO" = "Prairie Pothole",
+                                "SUGG" = "Lake Suggs",
+                                "sunp" = "Lake Sunapee")) +
   scale_y_continuous(trans = c("reverse")) +
-  labs(x = "Median CRPS (°C)", y = "Depth (m)", color = "")
+  labs(x = "Median CRPS (°C)", y = "Depth (m)", color = "", tag = "(a)") +
+  theme(plot.tag.potition = c(0, 0))
 
 #ggsave(paste0('paper_figs/', 'Figure4a.pdf'), width = 6, height = 5, units = 'in')
 #ggsave(paste0('paper_figs/', 'Figure4a.png'), width = 5, height = 3, units = 'in', dpi = 400)
@@ -236,12 +260,28 @@ diff_depth <- ggplot(diff_df,
   geom_line(orientation = "y", linewidth = 0.9) +
   geom_point(size = 1) +
   theme_bw() +
-  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous'),
+                     labels = c("BARC" = "Lake Barco",
+                                "bvre" = "Beaverdam Reservoir",
+                                "ccre" = "Carvins Cove Reservoir",
+                                "CRAM" = "Lake Crampton",
+                                "fcre" = "Falling Creek Reservoir",
+                                "LIRO" = "Little Rock Lake",
+                                "PRLA" = "Prairie Lake",
+                                "PRPO" = "Prairie Pothole",
+                                "SUGG" = "Lake Suggs",
+                                "sunp" = "Lake Sunapee")) +
   scale_y_continuous(trans = c("reverse")) +
-  labs(x = 'Difference in CRPS (with RS - no DA)', y = "Depth (m)", color = "")
+  labs(x = 'Δ CRPS (°C; with RS - no DA)', y = "Depth (m)", color = "", tag = "(b)") +
+  theme(plot.tag.potition = c(0, 0)) +
+  geom_vline(xintercept = 0, color = 'gray40', linetype = 'dashed') +
+  annotate('text', x = -0.7, y = 12, label = 'RS performs\nbetter', color = 'gray40') +
+  annotate('text', x = 0.75, y = 12, label = 'no DA\nperforms\nbetter', color = 'gray40')
 
 rs_depth + diff_depth + plot_layout(guides = "collect", axis_titles = "collect")
-ggsave(paste0('paper_figs/', 'Figure5.png'), width = 7, height = 5, units = 'in')
+
+
+ggsave(paste0('paper_figs/', 'Figure5.png'), width = 10, height = 5, units = 'in')
 
 ```
 
@@ -298,68 +338,79 @@ delta_seasons$season <- factor(delta_seasons$season, levels = c("Winter", "Sprin
 ggplot(data = delta_seasons, aes(x = horizon, y = diff_median_crps, color = site_id)) +
   geom_line(linewidth = 1) +
   facet_wrap(~season) +
-  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous'),
+                     labels = c("BARC" = "Lake Barco",
+                                "bvre" = "Beaverdam Reservoir",
+                                "ccre" = "Carvins Cove Reservoir",
+                                "CRAM" = "Lake Crampton",
+                                "fcre" = "Falling Creek Reservoir",
+                                "LIRO" = "Little Rock Lake",
+                                "PRLA" = "Prairie Lake",
+                                "PRPO" = "Prairie Pothole",
+                                "SUGG" = "Lake Suggs",
+                                "sunp" = "Lake Sunapee")) +
   labs(y = 'Δ CRPS (RS - no DA) (°C)', x = 'Horizon (days ahead)', color = "") +
   theme_bw() +
   theme(legend.position = 'bottom') +
-  geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') +
+  geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') + 
+  geom_text(data = data.frame(x = 10, y = 2.5, label = "no DA performs better"), label = "no DA performs better"))
   annotate('text', x = 10, y = 2.5, label = 'no DA performs better', color = 'gray40') +
   annotate('text', x = 10, y = -0.7, label = 'RS performs better', color = 'gray40')
 
-ggsave(paste0('paper_figs/', 'Figure6X.pdf'), width = 6, height = 5, units = 'in')
+ggsave(paste0('paper_figs/', 'Figure6.pdf'), width = 7, height = 5, units = 'in')
 
 
 
 
 # Now, just for surface estimates
-scores_seasonal_3m <- arrow::open_dataset("scores/parquet/") |>
-  dplyr::collect() |>
-  filter(datetime > "2021-01-01") |>
-  filter(variable == "temperature") |>
-  filter(!is.na(observation)) |>
-  group_by(site_id) |>
-  filter(depth == min(depth, na.rm = TRUE)) |>
-  ungroup() |>
-  mutate(month = month(datetime), 
-         season = case_when(
-           month %in% c(12, 1, 2)  ~ "Winter",
-           month %in% c(3, 4, 5)   ~ "Spring",
-           month %in% c(6, 7, 8)   ~ "Summer",
-           month %in% c(9, 10, 11) ~ "Fall")) |>
-  filter(horizon > 0) |>
-  group_by(site_id, model_id, horizon, season) |>
-  summarize(median_crps = median(crps, na.rm = T))
-
-
-
-
-delta_seasons_3m <- scores_seasonal_3m |>
-  filter(model_id %in% c("analysis_run_no_da","analysis_run_with_rs")) |>
-  pivot_wider(
-    id_cols   = c(site_id, horizon, season),    # the keys that define a unique case
-    names_from = model_id,                      # create a column for each model_id
-    values_from = median_crps,
-    names_glue = "median_{model_id}"            # nice column names
-  ) |> mutate(
-    diff_median_crps = median_analysis_run_with_rs -
-      median_analysis_run_no_da) |>
-  select(site_id, horizon, season,
-         median_analysis_run_no_da,
-         median_analysis_run_with_rs,
-         diff_median_crps)
-
-ggplot(data = delta_seasons_3m, aes(x = horizon, y = diff_median_crps, color = site_id)) +
-  geom_line(linewidth = 1) +
-  facet_wrap(~season) +
-  scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
-  labs(y = 'Δ CRPS (RS - no DA) (°C)', x = 'Horizon (days ahead)', color = "") +
-  theme_bw() +
-  theme(legend.position = 'bottom') +
-  geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') +
-  annotate('text', x = 10, y = 2.5, label = 'no DA performs better', color = 'gray40') +
-  annotate('text', x = 10, y = -0.7, label = 'RS performs better', color = 'gray40')
-
-ggsave(paste0('paper_figs/', 'Figure6Y.png'), width = 6, height = 5, units = 'in')
+# scores_seasonal_3m <- arrow::open_dataset("scores/parquet/") |>
+#   dplyr::collect() |>
+#   filter(datetime > "2021-01-01") |>
+#   filter(variable == "temperature") |>
+#   filter(!is.na(observation)) |>
+#   group_by(site_id) |>
+#   filter(depth == min(depth, na.rm = TRUE)) |>
+#   ungroup() |>
+#   mutate(month = month(datetime), 
+#          season = case_when(
+#            month %in% c(12, 1, 2)  ~ "Winter",
+#            month %in% c(3, 4, 5)   ~ "Spring",
+#            month %in% c(6, 7, 8)   ~ "Summer",
+#            month %in% c(9, 10, 11) ~ "Fall")) |>
+#   filter(horizon > 0) |>
+#   group_by(site_id, model_id, horizon, season) |>
+#   summarize(median_crps = median(crps, na.rm = T))
+# 
+# 
+# 
+# 
+# delta_seasons_3m <- scores_seasonal_3m |>
+#   filter(model_id %in% c("analysis_run_no_da","analysis_run_with_rs")) |>
+#   pivot_wider(
+#     id_cols   = c(site_id, horizon, season),    # the keys that define a unique case
+#     names_from = model_id,                      # create a column for each model_id
+#     values_from = median_crps,
+#     names_glue = "median_{model_id}"            # nice column names
+#   ) |> mutate(
+#     diff_median_crps = median_analysis_run_with_rs -
+#       median_analysis_run_no_da) |>
+#   select(site_id, horizon, season,
+#          median_analysis_run_no_da,
+#          median_analysis_run_with_rs,
+#          diff_median_crps)
+# 
+# ggplot(data = delta_seasons_3m, aes(x = horizon, y = diff_median_crps, color = site_id)) +
+#   geom_line(linewidth = 1) +
+#   facet_wrap(~season) +
+#   scale_color_manual(values = wes_palette(10, name = "Zissou1", type = 'continuous')) +
+#   labs(y = 'Δ CRPS (RS - no DA) (°C)', x = 'Horizon (days ahead)', color = "") +
+#   theme_bw() +
+#   theme(legend.position = 'bottom') +
+#   geom_hline(yintercept = 0, color = 'gray40', linetype = 'dashed') +
+#   annotate('text', x = 10, y = 2.5, label = 'no DA performs better', color = 'gray40') +
+#   annotate('text', x = 10, y = -0.7, label = 'RS performs better', color = 'gray40')
+# 
+# ggsave(paste0('paper_figs/', 'Figure6Y.png'), width = 6, height = 5, units = 'in')
 ```
 
 ## Figure 7
