@@ -499,8 +499,8 @@ accuracy_1day <- arrow::open_dataset("scores/parquet/") |>
   summarize(crps = median(crps, na.rm = T)) |>
   ungroup() |>
   mutate(horizon = as.character(horizon)) |>
-  select(horizon, site_id, crps) |>
-  filter(site_id != "PRLA" & site_id != "PRPO")
+  select(horizon, site_id, crps) #|>
+  #filter(site_id != "PRLA" & site_id != "PRPO")
 
 minmax14day <- arrow::open_dataset("scores/parquet/") |>
   dplyr::collect() |>
@@ -510,8 +510,8 @@ minmax14day <- arrow::open_dataset("scores/parquet/") |>
   group_by(site_id) |>
   summarize(crps = max(crps, na.rm = T) - min(crps, na.rm = T), .groups = 'drop') |>
   mutate(horizon = "max_min") |>
-  select(horizon, site_id, crps) |>
-  filter(site_id != "PRLA" & site_id != "PRPO")
+  select(horizon, site_id, crps) #|>
+  #filter(site_id != "PRLA" & site_id != "PRPO")
 
 
 # accuracy_14day <- arrow::open_dataset("scores/parquet/") |>
@@ -572,12 +572,68 @@ ggplot(spear_corr_table, aes(x = rho, y = full_name, color = Metric)) +
   xlim(-1, 1) +
   geom_vline(xintercept = -0.5, linetype = 'dashed') +
   geom_vline(xintercept = 0.5, linetype = 'dashed') +
-  labs(x = "Spearman's correlation coefficient", y = element_blank(), color = element_blank(),
-       title = "Excluding PRLA + PRPO") +
+  labs(x = "Spearman's correlation coefficient", y = element_blank(), color = element_blank()) +#,
+       #title = "Excluding PRLA + PRPO") +
   scale_color_manual(values = c("accuracy
 degradation" = '#277da1', "accuracy" = '#f94144'))
 
-ggsave(paste0('paper_figs/', 'Figure8_exclPR.png'), width = 7, height = 5, units = 'in')
+ggsave(paste0('paper_figs/', 'Figure8.png'), width = 7, height = 5, units = 'in')
+
+
+
+# now look at values of each variable
+lake_info <- left_join(lake_info, accuracy_1day, by = c("siteID" = "site_id"))
+
+secchiplot <- ggplot(lake_info, aes(x = reorder(siteID, -mean_secchi_depth_m), y = mean_secchi_depth_m, fill = crps)) + 
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  scale_fill_gradient(high = "#c1121f", low = "#2c7da0") +
+  labs(x = element_blank(), y = "Mean Secchi (m)", fill = "CRPS (°C)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+secchiplot
+
+precipplot <- ggplot(lake_info, aes(x = reorder(siteID, -mean_annual_precipitation_mm), 
+                                    y = mean_annual_precipitation_mm, fill = crps)) + 
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  scale_fill_gradient(high = "#c1121f", low = "#2c7da0") +
+  labs(x = element_blank(), y = "Mean annual precip (mm)", fill = "CRPS (°C)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+precipplot
+
+latplot <- ggplot(lake_info, aes(x = reorder(siteID, -latitude), 
+                                    y = latitude, fill = crps)) + 
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  scale_fill_gradient(high = "#c1121f", low = "#2c7da0") +
+  labs(x = element_blank(), y = "Latitude", fill = "CRPS (°C)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+latplot
+
+windplot <- ggplot(lake_info, aes(x = reorder(siteID, -avg_wind), 
+                                    y = avg_wind, fill = crps)) + 
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  scale_fill_gradient(high = "#c1121f", low = "#2c7da0") +
+  labs(x = element_blank(), y = "Wind speed", fill = "CRPS (°C)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+windplot
+
+tempvarplot <- ggplot(lake_info, aes(x = reorder(siteID, -air_temp_10day_sd_degreeC), 
+                                    y = air_temp_10day_sd_degreeC, fill = crps)) + 
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  scale_fill_gradient(high = "#c1121f", low = "#2c7da0") +
+  labs(x = element_blank(), y = "Air temp 10 day sd", fill = "CRPS (°C)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+tempvarplot
+
+
+
+secchiplot + precipplot + latplot + windplot + tempvarplot + 
+  plot_layout(nrow = 2, guides = 'collect')
+ggsave(paste0('paper_figs/', 'FigureS2.png'), width = 10, height = 5, units = 'in')
+
 
 ```
 
