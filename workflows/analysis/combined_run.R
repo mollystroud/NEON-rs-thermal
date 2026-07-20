@@ -2,15 +2,16 @@ library(tidyverse)
 library(lubridate)
 set.seed(200)
 
-
-site <- "PRPO"
+site <- "sunp"
 
 # This need to be set to run each experiment
 run_name <- "run"
 config_flare_file <- paste0("configure_flare_", site, ".yml")
 starting_index <- 1 #260
-experiments <- c("no_da", "with_rs")
-
+#experiments <- c("no_da", "with_rs")
+#experiments <- c("with_insitu")
+#experiments <- c("with_insitu_surface")
+experiments <- c("with_insitu_spaced")
 
 # These don't need to be changed
 config_set_name <- "analysis"
@@ -33,10 +34,19 @@ second_date <- as_date("2021-01-01") - days(days_between_forecasts)
 
 all_dates <- seq.Date(starting_date,second_date + days(days_between_forecasts * num_forecasts), by = 1)
 
-potential_date_list <- list(no_da = all_dates,
-                            with_rs = all_dates)
+#potential_date_list <- list(no_da = all_dates, with_rs = all_dates)
+
+potential_date_list <- list(with_insitu_spaced = all_dates)
 
 date_list <- potential_date_list[which(names(potential_date_list) %in% experiments)]
+
+# now download RS data
+source("R/get_LST.R")
+source("R/bboxes.R")
+rsdata <- get_LST(bbox = get(paste0(site, "_bbox")), start_date = min(date_list[[1]]), end_date = max(date_list[[1]]))
+vals <- get_vals(get(paste0(site, "_points")), rsdata)
+vals <- clean_data(vals)
+write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
 
 models <- names(date_list)
 
@@ -66,8 +76,10 @@ sims <- sims |>
 sims$horizon[1:length(models)] <- 0
 
 #starting_index <- 150
-for(i in 208:nrow(sims)){
-
+#devtools::load_all("/Users/mollystroud/Desktop/postdoc/FLAREr-3.1-dev")
+#options(error = NULL)
+#options(show.error.locations = TRUE)
+for(i in starting_index:nrow(sims)){
   message(paste0("index: ", i))
   message(paste0("     Running model: ", sims$model[i], " "))
 
@@ -132,13 +144,19 @@ for(i in 208:nrow(sims)){
   inflow_outflow_files <- FLAREr:::create_inflow_outflow_files(config, config_set_name, lake_directory)
 
   #Create observation matrix
-  #NOTE THAT THE TARGETS DATA ARE THE REMOTE SENSING VERSION
-  obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-rs.csv")),
+  #NOTE: obs are assimilated from the "-targets-insitu-spaced.csv" file (in situ
+  #observations subsampled to the remote-sensing revisit frequency), matching the
+  #"with_insitu_spaced" experiment set above. To rerun the "with_rs" or full
+  #"with_insitu" experiments, update this file path (and the `experiments`
+  #variable above) accordingly.
+  obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu-spaced.csv")),
                                     obs_config = obs_config,
                                     config)
+  # obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu.csv")),
+  #                                   obs_config = obs_config,
+  #                                   config)
 
-  #NOTE THAT THE TARGETS DATA ARE THE REMOTE SENSING VERSION
-  obs_non_vertical <- FLAREr:::create_obs_non_vertical(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-rs.csv")),
+  obs_non_vertical <- FLAREr:::create_obs_non_vertical(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu-spaced.csv")),
                                                        obs_config,
                                                        start_datetime = config$run_config$start_datetime,
                                                        end_datetime = config$run_config$end_datetime,
@@ -157,7 +175,6 @@ for(i in 208:nrow(sims)){
                                                obs,
                                                config,
                                                obs_non_vertical = obs_non_vertical)
-
   da_forecast_output <- FLAREr:::run_da_forecast(states_init = init$states,
                                                  pars_init = init$pars,
                                                  aux_states_init = init$aux_states_init,
