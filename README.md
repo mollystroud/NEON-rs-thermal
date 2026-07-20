@@ -74,8 +74,6 @@ flare-rs-thermal/
 │   └── rs-images/                         # Supporting bathymetry/imagery files
 │
 ├── LakeStats.csv                  # Per-lake morphometry/climate summary stats (Figure 8)
-├── insitu_comp.R                  # Exploratory: compares NEON in situ vs. RS temperatures
-├── extra_scripts.R                # Exploratory: bathymetry processing, dependency listing
 │
 ├── flare_tempdir/                  # [excluded] FLARE model working directories
 ├── forecasts/                      # [excluded] Raw forecast output (parquet)
