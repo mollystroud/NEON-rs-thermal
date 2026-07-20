@@ -11,25 +11,7 @@ are included in this repo and the visualizations may be created using workflows/
 
 ## Dependencies
 
-CRAN packages:
-
-```r
-install.packages(c(
-  "tidyverse", "lubridate", "yaml", "here", "arrow",
-  "rstac", "terra", "stars", "gdalcubes", "tmap", "sf", "tidyterra",
-  "viridis", "patchwork", "wesanderson", "imputeTS", "pacman",
-  "neonstore", "neonUtilities"
-))
-```
-
-GitHub-only packages (not on CRAN):
-
-```r
-remotes::install_github("FLARE-forecast/FLAREr")
-remotes::install_github("eco4cast/score4cast")
-```
-
-You will also need a compiled **GLM** (General Lake Model) executable. A macOS binary is
+You will need a compiled **GLM** (General Lake Model) executable. A macOS binary is
 bundled at `binary/macos-tahoe26/glm`; `workflows/analysis/combined_run.R` currently points
 `GLM_PATH` at a machine-specific location and must be edited to point at your own GLM
 build, e.g.:
