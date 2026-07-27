@@ -1,10 +1,3 @@
----
-
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # FLARE-RS analysis
 
 The code used in this paper may be found in the R folder and workflows folder. To run the FLARE forecasts, you must first download drivers (workflows/analysis/download_drivers.R) and then the Landsat imagery over the lake (R/get_LST.R, called from workflows/analysis/combined_run.R). Then you may run FLARE to get forecasts (workflows/analysis/combined_run.R).
