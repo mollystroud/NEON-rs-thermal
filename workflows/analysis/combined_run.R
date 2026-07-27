@@ -1,13 +1,18 @@
-library(tidyverse)
-library(lubridate)
+require(pacman)
+pacman::p_load(tidyverse, lubridate)
+#remotes::install_github("FLARE-forecast/FLAREr")
+#remotes::install_github("rqthomas/GLM3r")
+
 set.seed(200)
 
-site <- "sunp"
+site <- "sunp" # or, set to your chosen site
 
 # This need to be set to run each experiment
 run_name <- "run"
 config_flare_file <- paste0("configure_flare_", site, ".yml")
-starting_index <- 1 #260
+starting_index <- 1
+
+# pick which DA experiment will be run
 #experiments <- c("no_da", "with_rs")
 #experiments <- c("with_insitu")
 #experiments <- c("with_insitu_surface")
@@ -18,6 +23,8 @@ config_set_name <- "analysis"
 configure_run_file <- paste0("configure_run_", site,".yml")
 use_s3 <- FALSE
 
+
+# set this to your own GLM path
 Sys.setenv('GLM_PATH'='/Users/mollystroud/AED_Tools/binaries/macos/Sequoia/glm_latest/glm')
 lake_directory <- here::here()
 options(future.globals.maxSize = 891289600)
@@ -25,7 +32,6 @@ options(future.globals.maxSize = 891289600)
 walk(list.files(file.path(lake_directory, "R"), full.names = TRUE), source)
 
 ### Set up simulation start and end dates
-
 num_forecasts <- 104
 days_between_forecasts <- 7
 forecast_horizon <- 14
@@ -34,8 +40,8 @@ second_date <- as_date("2021-01-01") - days(days_between_forecasts)
 
 all_dates <- seq.Date(starting_date,second_date + days(days_between_forecasts * num_forecasts), by = 1)
 
+# update this with your current DA experiment
 #potential_date_list <- list(no_da = all_dates, with_rs = all_dates)
-
 potential_date_list <- list(with_insitu_spaced = all_dates)
 
 date_list <- potential_date_list[which(names(potential_date_list) %in% experiments)]
@@ -48,6 +54,7 @@ vals <- get_vals(get(paste0(site, "_points")), rsdata)
 vals <- clean_data(vals)
 write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
 
+# set up
 models <- names(date_list)
 
 start_dates <- as_date(rep(NA, num_forecasts + 1))
@@ -75,10 +82,9 @@ sims <- sims |>
 
 sims$horizon[1:length(models)] <- 0
 
-#starting_index <- 150
-#devtools::load_all("/Users/mollystroud/Desktop/postdoc/FLAREr-3.1-dev")
-#options(error = NULL)
-#options(show.error.locations = TRUE)
+
+
+# now run setup and forecasts
 for(i in starting_index:nrow(sims)){
   message(paste0("index: ", i))
   message(paste0("     Running model: ", sims$model[i], " "))
@@ -143,20 +149,17 @@ for(i in starting_index:nrow(sims)){
 
   inflow_outflow_files <- FLAREr:::create_inflow_outflow_files(config, config_set_name, lake_directory)
 
-  #Create observation matrix
-  #NOTE: obs are assimilated from the "-targets-insitu-spaced.csv" file (in situ
-  #observations subsampled to the remote-sensing revisit frequency), matching the
-  #"with_insitu_spaced" experiment set above. To rerun the "with_rs" or full
-  #"with_insitu" experiments, update this file path (and the `experiments`
-  #variable above) accordingly.
-  obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu-spaced.csv")),
+  # Create observation matrix
+  # NOTE: obs are assimilated from the "-targets-insitu.csv" file here.
+  # To rerun the "with_rs" or other experiments, update this file path accordingly.
+  obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu.csv")),
                                     obs_config = obs_config,
                                     config)
   # obs <- FLAREr:::create_obs_matrix(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu.csv")),
   #                                   obs_config = obs_config,
   #                                   config)
-
-  obs_non_vertical <- FLAREr:::create_obs_non_vertical(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu-spaced.csv")),
+  # and update this file path too
+  obs_non_vertical <- FLAREr:::create_obs_non_vertical(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu.csv")),
                                                        obs_config,
                                                        start_datetime = config$run_config$start_datetime,
                                                        end_datetime = config$run_config$end_datetime,
