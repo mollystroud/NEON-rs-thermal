@@ -525,12 +525,9 @@ ggplot(alldata[alldata$datetime > "2020-10-01" & alldata$datetime < "2023-01-01"
                         breaks = c(as.Date("2021-05-01"), as.Date("2022-10-01"))) +
   labs(x = 'In situ temperature (°C) ', y = 'Remote sensing temperature (°C)',
        color = element_blank()) +
-  theme(legend.position = 'bottom') #+
-  # geom_label(data = resids, aes(x = Inf, y = Inf,
-  #                               label = paste("Stdev of resids = ", sd_resid)),
-  #            hjust = 1, vjust = 1)
-ggsave(paste0(here::here(), '/paper_figs/', 'FigureS1.png'), width = 7, height = 5, units = 'in')
+  theme(legend.position = 'bottom')
 
+#ggsave(paste0(here::here(), '/paper_figs/', 'FigureS1.png'), width = 7, height = 5, units = 'in')
 
 ```
 
@@ -585,9 +582,9 @@ tempvarplot <- ggplot(lake_info, aes(x = reorder(siteID, -air_temp_10day_sd_degr
 tempvarplot
 
 
-
 secchiplot + precipplot + latplot + windplot + tempvarplot + 
   plot_layout(nrow = 2, guides = 'collect')
-ggsave(paste0('paper_figs/', 'FigureS2.png'), width = 10, height = 5, units = 'in')
+
+#ggsave(paste0(here::here(), '/paper_figs/', 'FigureS2.png'), width = 10, height = 5, units = 'in')
 
 ```
