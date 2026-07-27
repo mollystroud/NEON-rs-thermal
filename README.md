@@ -1,36 +1,33 @@
+---
+
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
 # FLARE-RS analysis
 
-The code used in this paper may be found in the R folder and workflows folder. To run
-the FLARE forecasts, you must first download drivers (workflows/analysis/download_drivers.R)
-and then the Landsat imagery over the lake (R/get_LST.R, called from
-workflows/analysis/combined_run.R). Then you may run FLARE to get forecasts
-(workflows/analysis/combined_run.R).
+The code used in this paper may be found in the R folder and workflows folder. To run the FLARE forecasts, you must first download drivers (workflows/analysis/download_drivers.R) and then the Landsat imagery over the lake (R/get_LST.R, called from workflows/analysis/combined_run.R). Then you may run FLARE to get forecasts (workflows/analysis/combined_run.R).
 
-For those just interested in the visualizations and analysis plots, the forecast scores
-are included in this repo and the visualizations may be created using workflows/Make_Figures.qmd.
+For those just interested in the visualizations and analysis plots, the forecast scores are included in this repo and the visualizations may be created using workflows/Make_Figures.qmd.
+
+For more information on running FLARE, see <https://github.com/FLARE-forecast/FLAREr/>.
 
 ## Dependencies
 
-You will need a compiled **GLM** (General Lake Model) executable. A macOS binary is
-bundled at `binary/macos-tahoe26/glm`; `workflows/analysis/combined_run.R` currently points
-`GLM_PATH` at a machine-specific location and must be edited to point at your own GLM
-build, e.g.:
+You will need a compiled **GLM** (General Lake Model) executable. A macOS binary is bundled at `binary/macos-tahoe26/glm`; `workflows/analysis/combined_run.R` currently points `GLM_PATH` at a machine-specific location and must be edited to point at your own GLM build, e.g.:
 
-```r
+``` r
 Sys.setenv('GLM_PATH' = file.path(here::here(), "binary/macos-tahoe26/glm"))
 ```
 
-Downloading remote-sensing imagery (`R/get_LST.R`) requires network access to the
-Microsoft Planetary Computer STAC API, and driver staging (`download_drivers.R`) requires
-network access to the FLARE OSN S3 bucket.
+Downloading remote-sensing imagery (`R/get_LST.R`) requires network access to the Microsoft Planetary Computer STAC API, and driver staging (`download_drivers.R`) requires network access to the FLARE OSN S3 bucket.
 
 ## Repository structure
 
-Note: `flare_tempdir/`, `forecasts/`, and `restart/` are generated run artifacts
-(model working directories, raw forecast output, and restart files) and are **not**
-included in the repository — they are excluded below and via `.gitignore`.
+Note: `flare_tempdir/`, `forecasts/`, and `restart/` are generated run artifacts (model working directories, raw forecast output, and restart files) and are **not** included in the repository — they are excluded below and via `.gitignore`.
 
-```
+```         
 flare-rs-thermal/
 ├── R/                            # Core helper functions, sourced by the workflows
 │   ├── bboxes.R                  # Lake and reservoir site bounding boxes + sample points
