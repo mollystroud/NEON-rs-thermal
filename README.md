@@ -39,7 +39,6 @@ flare-rs-thermal/
 │       ├── configure_flare_<site>.yml   # Per-site FLARE configuration
 │       ├── configure_run_<site>.yml     # Per-site run/date configuration
 │       ├── glm3_<site>.nml               # Per-site GLM namelist
-│       ├── glm3_base.nml                 # Shared/base GLM namelist
 │       ├── observations_config.csv       # Observation error/uncertainty settings
 │       ├── parameter_calibration_config.csv
 │       └── states_config.csv             # Modeled state variable configuration
@@ -47,10 +46,8 @@ flare-rs-thermal/
 ├── binary/
 │   └── macos-tahoe26/glm         # Bundled macOS GLM executable (see Dependencies)
 │
-├── drivers/                      # Staged met/inflow/outflow driver data (per site)
+├── drivers/                      # Staged met driver data (per site)
 │   ├── met/gefs-v12/{stage2,stage3}
-│   ├── inflow/{historical,future}
-│   └── outflow/{historical,future}
 │
 ├── targets/<site>/                # Observation ("target") files per site
 │   ├── <site>-targets-insitu.csv         # Full-resolution in situ observations
@@ -60,16 +57,10 @@ flare-rs-thermal/
 │
 ├── scores/parquet/site_id=<site>/         # Forecast scoring output (CRPS, log score, etc.)
 ├── plots/<site>/                          # Per-forecast diagnostic PDF plots
-├── paper_figs/                            # Final rendered figures used in the paper
-│   └── rs-images/                         # Supporting bathymetry/imagery files
 │
 ├── LakeStats.csv                  # Per-lake morphometry/climate summary stats (Figure 8)
 │
 ├── flare_tempdir/                  # [excluded] FLARE model working directories
 ├── forecasts/                      # [excluded] Raw forecast output (parquet)
-├── restart/                        # [excluded] Model restart files per site/run
-│
-├── renv/                          # Partial renv setup (no committed lockfile)
-├── flare-rs-thermal.Rproj
-└── .gitignore
+└── restart/                        # [excluded] Model restart files per site/run
 ```
