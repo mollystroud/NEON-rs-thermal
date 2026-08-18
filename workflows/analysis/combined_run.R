@@ -19,8 +19,7 @@ starting_index <- 1
 # experiment with remote sensing data assimilation. To run remote sensing data 
 # assimilation with in situ uncertainty, change obs_sd in 
 # configuration/observations_config.csv.
-#experiments <- c("no_da", "with_rs")
-
+experiments <- c("no_da", "with_rs")
 # This runs the experiment with in situ (all depths)
 #experiments <- c("with_insitu")
 
@@ -54,19 +53,27 @@ second_date <- as_date("2021-01-01") - days(days_between_forecasts)
 
 all_dates <- seq.Date(starting_date,second_date + days(days_between_forecasts * num_forecasts), by = 1)
 
+
 # update this with your current DA experiment
-#potential_date_list <- list(no_da = all_dates, with_rs = all_dates)
-potential_date_list <- list(with_insitu_spaced = all_dates)
+
+potential_date_list <- list(no_da = all_dates, with_rs = all_dates)
+#potential_date_list <- list(with_insitu = all_dates)
 
 date_list <- potential_date_list[which(names(potential_date_list) %in% experiments)]
 
-# now download RS data
-source("R/get_LST.R")
-source("R/bboxes.R")
-rsdata <- get_LST(bbox = get(paste0(site, "_bbox")), start_date = min(date_list[[1]]), end_date = max(date_list[[1]]))
-vals <- get_vals(get(paste0(site, "_points")), rsdata)
-vals <- clean_data(vals)
-write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
+# Download RS data if assimilating RS data
+# If the forecast period is long (>a few months), this will take a very long
+# time to run
+if("with_rs" %in% experiments == TRUE){
+  source("R/get_LST.R")
+  source("R/bboxes.R")
+  rsdata <- get_LST(bbox = get(paste0(site, "_bbox")), 
+                    start_date = min(date_list[[1]]), 
+                    end_date = max(date_list[[1]]))
+  vals <- get_vals(get(paste0(site, "_points")), rsdata)
+  vals <- clean_data(vals)
+  write_csv(vals, paste0("targets/", site, "/", site, "-targets-rs.csv"))
+}
 
 # set up
 models <- names(date_list)
