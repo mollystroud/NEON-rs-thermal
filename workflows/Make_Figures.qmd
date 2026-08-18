@@ -536,6 +536,11 @@ Figure S2
 ```{r}
 # This figure shows bar plots of the significant Spearman correlation variables
 lake_info <- left_join(lake_info, accuracy_1day, by = c("siteID" = "site_id"))
+lake_info$siteID[lake_info$siteID == "sunp"] <- "SUNP"
+lake_info$siteID[lake_info$siteID == "fcre"] <- "FCRE"
+lake_info$siteID[lake_info$siteID == "ccre"] <- "CCRE"
+lake_info$siteID[lake_info$siteID == "bvre"] <- "BVRE"
+
 
 secchiplot <- ggplot(lake_info, aes(x = reorder(siteID, -mean_secchi_depth_m), y = mean_secchi_depth_m, fill = crps)) + 
   geom_bar(stat = 'identity') +
