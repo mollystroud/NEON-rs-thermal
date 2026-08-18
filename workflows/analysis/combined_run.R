@@ -12,11 +12,25 @@ run_name <- "run"
 config_flare_file <- paste0("configure_flare_", site, ".yml")
 starting_index <- 1
 
-# pick which DA experiment will be run
+# Pick which DA experiment(s) will be run. More detailed descriptions of each
+# scenario may be seen in Table 1 of the manuscript.
+
+# This runs both the 'no data assimilation' forecast experiment (no_da) and the
+# experiment with remote sensing data assimilation. To run remote sensing data 
+# assimilation with in situ uncertainty, change obs_sd in 
+# configuration/observations_config.csv.
 #experiments <- c("no_da", "with_rs")
+
+# This runs the experiment with in situ (all depths)
 #experiments <- c("with_insitu")
+
+# This runs the experiment with in situ data assimilation using only surface 
+# data
 #experiments <- c("with_insitu_surface")
-experiments <- c("with_insitu_spaced")
+
+# This runs the experiment with in situ temporally spaced to remote sensing
+# frequency
+# experiments <- c("with_insitu_spaced")
 
 # These don't need to be changed
 config_set_name <- "analysis"
