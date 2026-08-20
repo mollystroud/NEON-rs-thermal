@@ -43,7 +43,7 @@ lake_directory <- here::here()
 # set this to your own GLM path
 #Need to run 
 #remotes::install_github("flare-forecast/GLMAEDr")
-#GLMAEDr::glm_install()
+GLMAEDr::glm_install()
 Sys.setenv('GLM_PATH'= GLMAEDr::glm_path())
 
 options(future.globals.maxSize = 891289600)
@@ -148,8 +148,8 @@ for(i in starting_index:nrow(sims)){
   if(i <= length(models)){
     config$run_config$restart_file <- NA
   }else{
-    run_config$restart_file <- paste0(config$location$site_id, "-", lubridate::as_date(run_config$start_datetime), "-", sim_names, ".nc")
-    if(!file.exists(file.path(config$file_path$restart_directory, paste0(config$location$site_id, "-", lubridate::as_date(run_config$start_datetime), "-", sim_names, ".nc")) )){
+    run_config$restart_file <- paste0(config$location$site_id, "-", lubridate::as_date(run_config$start_datetime), "-", sim_names, ".zip")
+    if(!file.exists(file.path(config$file_path$restart_directory, paste0(config$location$site_id, "-", lubridate::as_date(run_config$start_datetime), "-", sim_names, ".zip")) )){
       warning(paste0("restart file: ", run_config$restart_file, " doesn't exist"))
     }
   }
@@ -186,14 +186,7 @@ for(i in starting_index:nrow(sims)){
   #                                   obs_config = obs_config,
   #                                   config)
   # and update this file path too
-  obs_non_vertical <- FLAREr:::create_obs_non_vertical(cleaned_observations_file_long = file.path(config$file_path$qaqc_data_directory,paste0(config$location$site_id, "-targets-insitu.csv")),
-                                                       obs_config,
-                                                       start_datetime = config$run_config$start_datetime,
-                                                       end_datetime = config$run_config$end_datetime,
-                                                       forecast_start_datetime = config$run_config$forecast_start_datetime,
-                                                       forecast_horizon =  config$run_config$forecast_horizon)
-  states_non_vertical <- NULL
-  states_non_vertical$depth_sd <- 0
+
 
   states_config <- FLAREr:::generate_states_to_obs_mapping(states_config, obs_config)
 
@@ -204,7 +197,7 @@ for(i in starting_index:nrow(sims)){
                                                pars_config,
                                                obs,
                                                config,
-                                               obs_non_vertical = obs_non_vertical)
+                                               obs_non_vertical = NULL)
   da_forecast_output <- FLAREr:::run_da_forecast(states_init = init$states,
                                                  pars_init = init$pars,
                                                  aux_states_init = init$aux_states_init,
@@ -221,7 +214,7 @@ for(i in starting_index:nrow(sims)){
                                                  obs_config = obs_config,
                                                  da_method = config$da_setup$da_method,
                                                  par_fit_method = config$da_setup$par_fit_method,
-                                                 obs_non_vertical = obs_non_vertical)
+                                                 obs_non_vertical = NULL)
 
   # Save forecast
 
