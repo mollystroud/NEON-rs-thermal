@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+drivers
+flare_tempdir
+forecasts
+plots
+restart
