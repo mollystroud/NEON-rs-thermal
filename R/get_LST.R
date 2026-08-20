@@ -24,7 +24,7 @@ get_LST <- function(bbox, start_date, end_date) {
                 bbox = bbox,
                 datetime = paste(start_date, end_date, sep="/"),
                 limit = 1000) |>
-    ext_query("eo:cloud_cover" < 50) |> #filter for cloud cover
+    ext_query("eo:cloud_cover" < 30) |> #filter for cloud cover
     post_request() |>
     items_sign(sign_fn = sign_planetary_computer()) |>
     items_fetch()
@@ -40,12 +40,12 @@ get_LST <- function(bbox, start_date, end_date) {
     )
     # define the cube space
     cube <- cube_view(srs = "EPSG:4326",
-                      extent = list(t0 = start_date, 
-                                    t1 = end_date,
-                                    left = bbox[1], 
-                                    right = bbox[3],
-                                    top = bbox[4], 
-                                    bottom = bbox[2]),
+                      extent = list(t0 = as.character(start_date), 
+                                    t1 = as.character(end_date),
+                                    left = bbox[[1]], 
+                                    right = bbox[[3]],
+                                    top = bbox[[4]], 
+                                    bottom = bbox[[2]]),
                       dx = 0.00031, # 30 m resolution
                       dy = 0.00031, 
                       dt = "P1D",
