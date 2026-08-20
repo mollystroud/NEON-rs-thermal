@@ -47,6 +47,8 @@
    out_dir = "./"
    out_fn = "output"
    nsave = 24
+   restart_fname = 'glm_restart.nc'
+   restart_nsave = 24
 /
 &init_profiles
    num_heights = 28
@@ -62,6 +64,8 @@
    avg_surf_temp = 6
    restart_variables = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
    restart_mixer_count = 0
+   init_restart_fname = 'glm_restart.nc'
+   init_restart_from_file = 0
 /
 &meteorology
    met_sw = .true.
@@ -88,28 +92,10 @@
    time_fmt = 'YYYY-MM-DD hh:mm:ss'
 /
 &inflow
-   num_inflows = 1
-   names_of_strms = 'weir'
-   subm_flag = .true.
-   strm_hf_angle = 55
-   strmbd_slope = 0.05
-   inflow_factor = 1
-   strmbd_drag = 0.03
-   subm_elev = 7.166530546
-   inflow_fl = 'inputs/FCR_weir_inflow_2013_2020_20220411_allfractions_2poolsDOC_1dot5xDOCr.csv', 
-   inflow_varnum = 3
-   inflow_vars = 'FLOW','TEMP','SALT'
+   num_inflows = 0
 /
 &outflow
-   num_outlet = 1
-   flt_off_sw = .false.
-   outl_elvs = 506.9
-   bsn_len_outl = 711.699
-   bsn_wid_outl = 226.03
-   outflow_fl = 'inputs/FCR_spillway_outflow_WeirOnly_2013_2020_20211102.csv'
-   outflow_factor = 0
-   crest_width = 5
-   crest_factor = 1
+   num_outlet = 0
 /
 &snowice
    snow_albedo_factor = 0.8

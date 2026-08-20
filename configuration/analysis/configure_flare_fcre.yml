@@ -91,8 +91,8 @@ default_init:
   white_ice_thickness: 0.0
   blue_ice_thickness: 0.0
 flows:
-  include_inflow: yes
-  include_outflow: yes
+  include_inflow: no
+  include_outflow: no
   future_inflow_model: future/model_id=historical_interp
   historical_inflow_model: historical/model_id=historical_interp
   local_inflow_directory: drivers/inflow
