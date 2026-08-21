@@ -123,12 +123,12 @@ folders <- list.files(paste0(here::here(), "/targets"), full.names = T)
 alldata <- data.frame()
 for(folder in folders){
   name <- str_sub(folder, start = -4)
-  insitu <- read_csv(paste0(folder, '/', name, '-targets-insitu.csv')) |>
+  insitu <- read_csv(paste0(folder, '/', name, '-targets-insitu.csv'), show_col_types = FALSE) |>
     filter(!is.na(observation)) |>
     filter(as.Date(datetime) >= "2021-01-01") |>
     slice_min(depth, n = 1) |>
     rename(insitu = observation) 
-  rs <- read_csv(paste0(folder, '/', name, '-targets-rs.csv'))
+  rs <- read_csv(paste0(folder, '/', name, '-targets-rs.csv'), show_col_types = FALSE)
   data <- left_join(rs, insitu, by = c('datetime', 'site_id'))
   alldata <- rbind(data, alldata)
 }
@@ -432,7 +432,7 @@ rs_reliability + rs_reliability_surface + plot_layout(guides = "collect", axis_t
 
 ```{r}
 # This figure shows the Spearman's correlation 
-lake_info <- read_csv(paste0(here::here(), "/LakeStats.csv"))
+lake_info <- read_csv(paste0(here::here(), "/LakeStats.csv"), show_col_types = FALSE)
 
 accuracy_1day <- arrow::open_dataset(paste0(here::here(), "/scores/parquet/")) |>
   dplyr::collect() |>
@@ -501,12 +501,12 @@ folders <- list.files(paste0(here::here(), "/targets"), full.names = T)
 alldata <- data.frame()
 for(folder in folders){
   name <- str_sub(folder, start = -4)
-  insitu <- read_csv(paste0(folder, '/', name, '-targets-insitu.csv')) |>
+  insitu <- read_csv(paste0(folder, '/', name, '-targets-insitu.csv'), show_col_types = FALSE) |>
     filter(!is.na(observation)) |>
     filter(as.Date(datetime) >= "2021-01-02") |>
     slice_min(depth, n = 1) |>
     rename(insitu = observation) 
-  rs <- read_csv(paste0(folder, '/', name, '-targets-rs.csv'))
+  rs <- read_csv(paste0(folder, '/', name, '-targets-rs.csv'), show_col_types = FALSE)
   data <- left_join(rs, insitu, by = c('datetime', 'site_id'))
   alldata <- rbind(data, alldata)
 }
